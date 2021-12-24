@@ -48,20 +48,18 @@ lemma Lp.norm_eq_of_L2 {ι : Type*} {f : ι → Type*}
 sorry
 
 lemma baz [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V)
-  (f : Lp (λ i, V i) 2) :
+  {f : Π i, V i} (hf : summable (λ i, ∥f i∥ ^ 2)) :
   summable (λ i, (f i : E)) :=
 begin
-  -- apply summable_of_summable_norm ,
-  -- have := (Lp.mem_ℓp f).mem_ℓp_of_exponent_ge ,
   classical,
-  have hf := (Lp.mem_ℓp f).summable sorry,
   rw summable_iff_cauchy_seq_finset at ⊢ hf,
   change _root_.cauchy _ at hf,
   change _root_.cauchy _,
   rw metric.cauchy_iff at ⊢ hf,
-  refine ⟨sorry, _⟩,
+  refine ⟨filter.map_ne_bot, _⟩,
   intros ε hε,
-  obtain ⟨t, ht, H⟩ := hf.2 ε hε,
+  have hε' : 0 < (ε / 2) ^ 2 := sq_pos_of_pos (half_pos hε),
+  obtain ⟨t, ht, H⟩ := hf.2 _ hε',
   simp at ht,
   obtain ⟨a, h⟩ := ht,
   refine ⟨_, image_mem_map (mem_at_top a), _⟩,
@@ -73,26 +71,42 @@ begin
   rw real.norm_eq_abs at Hs₁ Hs₂,
   rw ← finset.sum_sdiff hs₁ at Hs₁ ⊢,
   rw ← finset.sum_sdiff hs₂ at Hs₂ ⊢,
-  simp at Hs₁ Hs₂,
-  calc _ = ∥∑ (x : ι) in s₁ \ a, f x - ∑ (x : ι) in s₂ \ a, f x∥ : _
-  ... ≤ ∥∑ (x : ι) in s₁ \ a, ((⇑f x : V x) : E)∥ + ∥∑ (x : ι) in s₂ \ a, f x∥ : _
-  ... < ε + ε : _
-  ... = ε : sorry,
-  -- have := h s₂,
-  -- intros s,
+  simp only [add_tsub_cancel_right] at Hs₁ Hs₂,
+  rw _root_.abs_of_nonneg at Hs₁ Hs₂,
+  calc _ = ∥∑ (x : ι) in s₁ \ a, (f x : E) - ∑ (x : ι) in s₂ \ a, (f x : E)∥ : by { congr' 1, abel }
+  ... ≤ ∥∑ (x : ι) in s₁ \ a, (f x : E)∥ + ∥∑ (x : ι) in s₂ \ a, (f x : E)∥ : norm_sub_le _ _
+  ... < ε/2 + ε/2 : add_lt_add _ _
+  ... = ε : add_halves ε,
+  -- nonnegativity and nice fact about finsets
+  repeat { sorry }
 end
 
+lemma baz' [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V)
+  (f : Lp (λ i, V i) 2) :
+  summable (λ i, (f i : E)) :=
+begin
+  have : summable (λ (i : ι), ∥(f i : E)∥ ^ (2:ℝ≥0∞).to_real) := (Lp.mem_ℓp f).summable sorry,
+  have : summable (λ (i : ι), ∥(f i : E)∥ ^ 2) := sorry,
+  exact baz hV this,
+end
 
 /-- A mutually orthogonal family of subspaces of `E` induce a linear isometry
 from `Lp 2` of the subspaces equipped with the `L2` inner product into `E`. -/
 def foo [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V) :
   Lp (λ i, V i) 2 →ₗᵢ[𝕜] E :=
 { to_fun := λ f, ∑' i, f i,
-  map_add' := λ f g, by simp [tsum_add (baz hV f) (baz hV g)],
-  map_smul' := λ c f, by simpa using tsum_const_smul (baz hV f),
+  map_add' := λ f g, by simp [tsum_add (baz' hV f) (baz' hV g)],
+  map_smul' := λ c f, by simpa using tsum_const_smul (baz' hV f),
   norm_map' := λ f, begin
-    simp,
-    rw Lp.norm_eq_tsum_rpow,
+    classical, -- needed for lattice instance on `finset ι`, for `filter.at_top_ne_bot`
+    have H : 0 ≤ (2:ℝ≥0∞).to_real := ennreal.to_real_nonneg,
+    suffices : ∥∑' (i : ι), (f i : E)∥ ^ ((2:ℝ≥0∞).to_real) = ∥f∥ ^ ((2:ℝ≥0∞).to_real),
+    { exact real.rpow_left_inj_on sorry (norm_nonneg _) (norm_nonneg _) this },
+    refine tendsto_nhds_unique  _ (Lp.has_sum_norm sorry f),
+    convert (baz' hV f).has_sum.norm.rpow_const (or.inr H),
+    ext s,
+    -- nice fact about finsets
+    sorry
   end }
 
 /-- A finite, mutually orthogonal family of subspaces of `E`, which span `E`, induce an isometry
