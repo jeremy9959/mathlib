@@ -29,21 +29,21 @@ local notation `⟪`x`, `y`⟫` := @inner 𝕜 _ _ x y
 then the normed space `Lp f 2`, a subtype of `Π i, f i`, inherits a compatible inner product space
 structure.
 -/
-instance Lp.inner_product_space {ι : Type*} (f : ι → Type*)
-  [Π i, inner_product_space 𝕜 (f i)] : inner_product_space 𝕜 (Lp f 2) :=
+instance lp.inner_product_space {ι : Type*} (f : ι → Type*)
+  [Π i, inner_product_space 𝕜 (f i)] : inner_product_space 𝕜 (lp f 2) :=
 { inner := λ x y, ∑' i, inner (x i) (y i),
   norm_sq_eq_inner := sorry,
   conj_sym := sorry,
   add_left := sorry,
   smul_left := sorry }
 
-@[simp] lemma Lp.inner_apply {ι : Type*} {f : ι → Type*}
-  [Π i, inner_product_space 𝕜 (f i)] (x y : Lp f 2) :
+@[simp] lemma lp.inner_apply {ι : Type*} {f : ι → Type*}
+  [Π i, inner_product_space 𝕜 (f i)] (x y : lp f 2) :
   ⟪x, y⟫ = ∑' i, ⟪x i, y i⟫ :=
 rfl
 
-lemma Lp.norm_eq_of_L2 {ι : Type*} {f : ι → Type*}
-  [Π i, inner_product_space 𝕜 (f i)] (x : Lp f 2) :
+lemma lp.norm_eq_of_l2 {ι : Type*} {f : ι → Type*}
+  [Π i, inner_product_space 𝕜 (f i)] (x : lp f 2) :
   ∥x∥ = sqrt (∑' (i : ι), ∥x i∥ ^ 2) :=
 sorry
 
@@ -82,10 +82,10 @@ begin
 end
 
 lemma baz' [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V)
-  (f : Lp (λ i, V i) 2) :
+  (f : lp (λ i, V i) 2) :
   summable (λ i, (f i : E)) :=
 begin
-  have : summable (λ (i : ι), ∥(f i : E)∥ ^ (2:ℝ≥0∞).to_real) := (Lp.mem_ℓp f).summable sorry,
+  have : summable (λ (i : ι), ∥(f i : E)∥ ^ (2:ℝ≥0∞).to_real) := (lp.mem_ℓp f).summable sorry,
   have : summable (λ (i : ι), ∥(f i : E)∥ ^ 2) := sorry,
   exact baz hV this,
 end
@@ -93,7 +93,7 @@ end
 /-- A mutually orthogonal family of subspaces of `E` induce a linear isometry
 from `Lp 2` of the subspaces equipped with the `L2` inner product into `E`. -/
 def foo [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V) :
-  Lp (λ i, V i) 2 →ₗᵢ[𝕜] E :=
+  lp (λ i, V i) 2 →ₗᵢ[𝕜] E :=
 { to_fun := λ f, ∑' i, f i,
   map_add' := λ f g, by simp [tsum_add (baz' hV f) (baz' hV g)],
   map_smul' := λ c f, by simpa using tsum_const_smul (baz' hV f),
@@ -102,58 +102,70 @@ def foo [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family
     have H : 0 ≤ (2:ℝ≥0∞).to_real := ennreal.to_real_nonneg,
     suffices : ∥∑' (i : ι), (f i : E)∥ ^ ((2:ℝ≥0∞).to_real) = ∥f∥ ^ ((2:ℝ≥0∞).to_real),
     { exact real.rpow_left_inj_on sorry (norm_nonneg _) (norm_nonneg _) this },
-    refine tendsto_nhds_unique  _ (Lp.has_sum_norm sorry f),
+    refine tendsto_nhds_unique  _ (lp.has_sum_norm sorry f),
     convert (baz' hV f).has_sum.norm.rpow_const (or.inr H),
     ext s,
     -- nice fact about finsets
     sorry
   end }
 
+lemma foo_apply [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V)
+  (f : lp (λ i, V i) 2) :
+  foo hV f = ∑' i, f i :=
+rfl
+
+@[simp] lemma foo_apply_single [decidable_eq ι] [complete_space E] {V : ι → submodule 𝕜 E}
+  (hV : orthogonal_family 𝕜 V) {i : ι} {x : E} (hx : x ∈ V i) :
+  foo hV (dfinsupp.mk_lp (dfinsupp.single i ⟨x, hx⟩) 2) = x :=
+begin
+  let fx : lp (λ i, V i) 2 := dfinsupp.mk_lp (dfinsupp.single i ⟨x, hx⟩) 2,
+  suffices : ∀ j ≠ i, (fx j : E) = 0, by simpa [foo_apply] using tsum_eq_single i this,
+  intros j hj,
+  have : fx j = 0 := dfinsupp.single_eq_of_ne hj.symm,
+  simp [this],
+end
+
 instance {E : ι → Type*} [Π i, normed_group (E i)] [Π i, complete_space (E i)] :
-  complete_space (Lp E 2) :=
+  complete_space (lp E 2) :=
 sorry
 
-lemma is_closed_range_foo [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
+-- instance [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
+--   (hV : orthogonal_family 𝕜 V) :
+--   complete_space (set.range (foo hV)) :=
+-- (foo hV).isometry.uniform_inducing.is_complete_range.complete_space_coe
+
+lemma range_foo [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
   (hV : orthogonal_family 𝕜 V) :
-  is_complete (set.range (foo hV)) :=
-begin
-  apply uniform_inducing.is_complete_range,
-  convert (foo hV).isometry.uniform_inducing,
-  -- rw complete_space_coe_iff_is_complete,
-  -- have :=
-  -- apply is_complete.is_closed
-end
-
-/-- A finite, mutually orthogonal family of subspaces of `E`, which span `E`, induce an isometry
-from `E` to `pi_Lp 2` of the subspaces equipped with the `L2` inner product. -/
-def direct_sum.submodule_is_internal.isometry_L2_of_orthogonal_family
-  [decidable_eq ι] {V : ι → submodule 𝕜 E} (hV : direct_sum.submodule_is_internal V)
-  (hV' : orthogonal_family 𝕜 V) :
-  E ≃ₗᵢ[𝕜] pi_Lp 2 (λ i, V i) :=
-begin
-  let e₁ := direct_sum.linear_equiv_fun_on_fintype 𝕜 ι (λ i, V i),
-  let e₂ := linear_equiv.of_bijective _ hV.injective hV.surjective,
-  refine (e₂.symm.trans e₁).isometry_of_inner _,
-  suffices : ∀ v w, ⟪v, w⟫ = ⟪e₂ (e₁.symm v), e₂ (e₁.symm w)⟫,
-  { intros v₀ w₀,
-    convert this (e₁ (e₂.symm v₀)) (e₁ (e₂.symm w₀));
-    simp only [linear_equiv.symm_apply_apply, linear_equiv.apply_symm_apply] },
-  intros v w,
-  transitivity ⟪(∑ i, (v i : E)), ∑ i, (w i : E)⟫,
-  { simp [sum_inner, hV'.inner_right_fintype] },
-  { congr; simp }
-end
-
-@[simp] lemma direct_sum.submodule_is_internal.isometry_L2_of_orthogonal_family_symm_apply
-  [decidable_eq ι] {V : ι → submodule 𝕜 E} (hV : direct_sum.submodule_is_internal V)
-  (hV' : orthogonal_family 𝕜 V) (w : pi_Lp 2 (λ i, V i)) :
-  (hV.isometry_L2_of_orthogonal_family hV').symm w = ∑ i, (w i : E) :=
+  (foo hV).to_linear_map.range = submodule.topological_closure (⨆ i, V i) :=
 begin
   classical,
-  let e₁ := direct_sum.linear_equiv_fun_on_fintype 𝕜 ι (λ i, V i),
-  let e₂ := linear_equiv.of_bijective _ hV.injective hV.surjective,
-  suffices : ∀ v : ⨁ i, V i, e₂ v = ∑ i, e₁ v i,
-  { exact this (e₁.symm w) },
-  intros v,
-  simp [e₂, direct_sum.submodule_coe, direct_sum.to_module, dfinsupp.sum_add_hom_apply]
+  refine le_antisymm _ _,
+  { sorry },
+  { apply submodule.topological_closure_minimal,
+    refine supr_le _,
+    intros i x hx,
+    use dfinsupp.mk_lp (dfinsupp.single i ⟨x, hx⟩) 2,
+    { simp, },
+    exact (foo hV).isometry.uniform_inducing.is_complete_range.is_closed }
 end
+
+/-- A mutually orthogonal family of subspaces of `E`, whose span is dense in `E`, induce an
+isometry from `E` to the `lp 2` of the subspaces. -/
+def orthogonal_family.isometry_l2_of_dense_span
+  [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
+  (hV : orthogonal_family 𝕜 V) (hV' : submodule.topological_closure (⨆ i, V i) = ⊤) :
+  E ≃ₗᵢ[𝕜] lp (λ i, V i) 2 :=
+linear_isometry_equiv.symm $
+linear_isometry_equiv.of_surjective (foo hV)
+begin
+  refine linear_map.range_eq_top.mp _,
+  rw ← hV',
+  exact range_foo hV,
+end
+
+@[simp] lemma orthogonal_family.isometry_l2_of_dense_span_symm_apply
+  [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
+  (hV : orthogonal_family 𝕜 V) (hV' : submodule.topological_closure (⨆ i, V i) = ⊤)
+  (w : lp (λ i, V i) 2) :
+  (hV.isometry_l2_of_dense_span hV').symm w = ∑' i, (w i : E) :=
+sorry

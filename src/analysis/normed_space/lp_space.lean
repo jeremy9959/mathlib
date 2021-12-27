@@ -171,6 +171,10 @@ begin
       exact real.rpow_le_rpow_of_exponent_ge' (norm_nonneg _) hi.le hq.le hpq' } }
 end
 
+/-- A finitely-supported element of `Π i, E i` is `mem_ℓp` for every `p`. -/
+lemma _root_.dfinsupp.mem_ℓp (f : Π₀ i, E i) : mem_ℓp f p :=
+(mem_ℓp_zero f.finite_support).of_exponent_ge (zero_le p)
+
 lemma add {f g : Π i, E i} (hf : mem_ℓp f p) (hg : mem_ℓp g p) : mem_ℓp (f + g) p :=
 begin
   rcases p.trichotomy with rfl | rfl | hp,
@@ -303,6 +307,13 @@ variables {E p}
 @[simp] lemma coe_fn_add (f g : lp E p) : ⇑(f + g) = f + g := rfl
 
 @[simp] lemma coe_fn_sub (f g : lp E p) : ⇑(f - g) = f - g := rfl
+
+def _root_.dfinsupp.mk_lp (f : Π₀ i, E i) (p) : lp E p :=
+⟨f, f.mem_ℓp⟩
+
+@[simp] lemma _root_.dfinsupp.coe_mk_lp (f : Π₀ i, E i) : (f.mk_lp p : Π i, E i) = f := rfl
+
+@[simp] lemma _root_.dfinsupp.coe_fn_mk_lp (f : Π₀ i, E i) : ⇑(f.mk_lp p) = f := rfl
 
 instance : has_norm (lp E p) :=
 { norm := λ f, if hp : p = 0 then by subst hp; exact (lp.mem_ℓp f).finite_dsupport.to_finset.card
