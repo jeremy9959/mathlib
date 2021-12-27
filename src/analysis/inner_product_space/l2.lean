@@ -109,6 +109,21 @@ def foo [complete_space E] {V : ι → submodule 𝕜 E} (hV : orthogonal_family
     sorry
   end }
 
+instance {E : ι → Type*} [Π i, normed_group (E i)] [Π i, complete_space (E i)] :
+  complete_space (Lp E 2) :=
+sorry
+
+lemma is_closed_range_foo [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
+  (hV : orthogonal_family 𝕜 V) :
+  is_complete (set.range (foo hV)) :=
+begin
+  apply uniform_inducing.is_complete_range,
+  convert (foo hV).isometry.uniform_inducing,
+  -- rw complete_space_coe_iff_is_complete,
+  -- have :=
+  -- apply is_complete.is_closed
+end
+
 /-- A finite, mutually orthogonal family of subspaces of `E`, which span `E`, induce an isometry
 from `E` to `pi_Lp 2` of the subspaces equipped with the `L2` inner product. -/
 def direct_sum.submodule_is_internal.isometry_L2_of_orthogonal_family
