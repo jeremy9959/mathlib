@@ -1264,6 +1264,10 @@ theorem eq_preimage_subtype_val_iff {p : α → Prop} {s : set (subtype p)} {t :
 ⟨assume s_eq x h, by { rw [s_eq], simp },
  assume h, ext $ λ ⟨x, hx⟩, by simp [h]⟩
 
+lemma nonempty_of_nonempty_preimage {s : set β} {f : α → β} (hf : (f ⁻¹' s).nonempty) :
+  s.nonempty :=
+let ⟨x, hx⟩ := hf in ⟨f x, hx⟩
+
 end preimage
 
 /-! ### Image of a set under a function -/
@@ -1618,6 +1622,11 @@ begin
     exact set_coe.ext_iff.2 (@subsingleton.elim s h ⟨a, ha⟩ ⟨b, hb⟩) },
   { exact λ h, subsingleton.intro (λ a b, set_coe.ext (h a.property b.property)) }
 end
+
+/-- The `coe_sort` of a set `s` in a subsingleton type is a subsingleton.
+For the corresponding result for `subtype`, see `subtype.subsingleton`. -/
+instance subsingleton_coe_of_subsingleton [subsingleton α] {s : set α} : subsingleton s :=
+by { rw [s.subsingleton_coe], exact subsingleton_of_subsingleton }
 
 /-- The preimage of a subsingleton under an injective map is a subsingleton. -/
 theorem subsingleton.preimage {s : set β} (hs : s.subsingleton) {f : α → β}
