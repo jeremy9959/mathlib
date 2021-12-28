@@ -15,7 +15,6 @@ import analysis.normed_space.lp_space
 open real set filter is_R_or_C
 open_locale big_operators uniformity topological_space nnreal ennreal complex_conjugate direct_sum
 
-lemma fact_one_le_two_ennreal : fact ((1:ℝ≥0∞) ≤ 2) := ⟨one_le_two⟩
 local attribute [instance] fact_one_le_two_ennreal
 
 noncomputable theory
@@ -124,10 +123,6 @@ begin
   have : fx j = 0 := dfinsupp.single_eq_of_ne hj.symm,
   simp [this],
 end
-
-instance {E : ι → Type*} [Π i, normed_group (E i)] [Π i, complete_space (E i)] :
-  complete_space (lp E 2) :=
-sorry
 
 -- instance [complete_space E] {V : ι → submodule 𝕜 E} [Π i, complete_space (V i)]
 --   (hV : orthogonal_family 𝕜 V) :
