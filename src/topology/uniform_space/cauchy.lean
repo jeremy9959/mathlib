@@ -185,6 +185,13 @@ lemma cauchy_seq_iff {u : ℕ → α} :
   cauchy_seq u ↔ ∀ V ∈ 𝓤 α, ∃ N, ∀ k ≥ N, ∀ l ≥ N, (u k, u l) ∈ V :=
 by simp [cauchy_seq_iff', filter.eventually_at_top_prod_self', prod_map]
 
+lemma cauchy_seq.cauchy_map_cofinite {u : ℕ → α} (hu : cauchy_seq u) :
+  cauchy (filter.map u cofinite) :=
+begin
+  rw nat.cofinite_eq_at_top,
+  exact hu,
+end
+
 lemma cauchy_seq.prod_map {γ δ} [uniform_space β] [semilattice_sup γ] [semilattice_sup δ]
   {u : γ → α} {v : δ → β}
   (hu : cauchy_seq u) (hv : cauchy_seq v) : cauchy_seq (prod.map u v) :=
@@ -196,6 +203,11 @@ begin
   haveI := hu.nonempty,
   exact (hu.prod hv).mono (tendsto.prod_mk le_rfl le_rfl)
 end
+
+lemma cauchy_seq.eventually_eventually [semilattice_sup β] [nonempty β] {u : β → α}
+  (hu : cauchy_seq u) {V : set (α × α)} (hV : V ∈ 𝓤 α) :
+  ∀ᶠ k in at_top, ∀ᶠ l in at_top, (u k, u l) ∈ V :=
+eventually_eventually_at_top $ hu.tendsto_uniformity hV
 
 lemma uniform_continuous.comp_cauchy_seq {γ} [uniform_space β] [semilattice_sup γ]
   {f : α → β} (hf : uniform_continuous f) {u : γ → α} (hu : cauchy_seq u) :

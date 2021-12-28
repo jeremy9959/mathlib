@@ -3,6 +3,7 @@ Copyright (c) 2021 Heather Macbeth. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Heather Macbeth
 -/
+import analysis.normed.group.pointwise
 import analysis.mean_inequalities
 import analysis.mean_inequalities_pow
 import topology.algebra.ordered.liminf_limsup
@@ -77,6 +78,21 @@ begin
   dsimp [mem_ℓp],
   rw [if_neg hp.1.ne', if_neg hp.2.ne],
   exact hf,
+end
+
+lemma mem_ℓp_gen' (hp : 0 < p.to_real) {C : ℝ} (hC : 0 ≤ C) {f : Π i, E i}
+  (hf : ∀ s : finset α, ∑ i in s, ∥f i∥ ^ p.to_real ≤ C) :
+  mem_ℓp f p :=
+begin
+  apply mem_ℓp_gen hp,
+  use ⨆ s : finset α, ∑ i in s, ∥f i∥ ^ p.to_real,
+  apply has_sum_of_is_lub_of_nonneg,
+  { intros b,
+    exact real.rpow_nonneg_of_nonneg (norm_nonneg _) _ },
+  apply is_lub_csupr,
+  use C,
+  rintros - ⟨s, rfl⟩,
+  exact hf s
 end
 
 lemma zero_mem_ℓp : mem_ℓp (0 : Π i, E i) p :=
@@ -458,6 +474,60 @@ normed_group.of_core _
   end,
   norm_neg := norm_neg }
 
+section compare_pointwise
+
+lemma norm_apply_le_norm (hp : p ≠ 0) (f : lp E p) (i : α) : ∥f i∥ ≤ ∥f∥ :=
+begin
+  rcases eq_or_ne p ∞ with rfl | hp',
+  { haveI : nonempty α := ⟨i⟩,
+    exact (is_lub_norm f).1 ⟨i, rfl⟩ },
+  have hp'' : 0 < p.to_real := ennreal.to_real_pos hp hp',
+  have : ∀ i, 0 ≤ ∥f i∥ ^ p.to_real,
+  { exact λ i, real.rpow_nonneg_of_nonneg (norm_nonneg _) _ },
+  rw ← real.rpow_le_rpow_iff (norm_nonneg _) (norm_nonneg' _) hp'',
+  convert le_has_sum (has_sum_norm hp'' f) i (λ i hi, this i),
+end
+
+lemma sum_rpow_le_norm_rpow (hp : 0 < p.to_real) (f : lp E p) (s : finset α) :
+  ∑ i in s, ∥f i∥ ^ p.to_real ≤ ∥f∥ ^ p.to_real :=
+begin
+  rw lp.norm_rpow_eq_tsum hp f,
+  have : ∀ i, 0 ≤ ∥f i∥ ^ p.to_real,
+  { exact λ i, real.rpow_nonneg_of_nonneg (norm_nonneg _) _ },
+  refine sum_le_tsum _ (λ i hi, this i) _,
+  exact (lp.mem_ℓp f).summable hp
+end
+
+lemma norm_le_of_forall_le' [nonempty α] {f : lp E ∞} (C : ℝ) (hCf : ∀ i, ∥f i∥ ≤ C) : ∥f∥ ≤ C :=
+begin
+  refine (is_lub_norm f).2 _,
+  rintros - ⟨i, rfl⟩,
+  exact hCf i,
+end
+
+lemma norm_le_of_forall_le {f : lp E ∞} {C : ℝ} (hC : 0 ≤ C) (hCf : ∀ i, ∥f i∥ ≤ C) : ∥f∥ ≤ C :=
+begin
+  casesI is_empty_or_nonempty α,
+  { simpa [eq_zero' f] using hC, },
+  { exact norm_le_of_forall_le' C hCf },
+end
+
+lemma norm_le_of_tsum_le (hp : 0 < p.to_real) {C : ℝ} (hC : 0 ≤ C) {f : lp E p}
+  (hf : ∑' i, ∥f i∥ ^ p.to_real ≤ C ^ p.to_real) :
+  ∥f∥ ≤ C :=
+begin
+  rw ← real.rpow_le_rpow_iff (norm_nonneg' _) hC hp,
+  rw norm_rpow_eq_tsum hp,
+  exact hf,
+end
+
+lemma norm_le_of_forall_sum_le (hp : 0 < p.to_real) {C : ℝ} (hC : 0 ≤ C) {f : lp E p}
+  (hf : ∀ s : finset α, ∑ i in s, ∥f i∥ ^ p.to_real ≤ C ^ p.to_real) :
+  ∥f∥ ≤ C :=
+norm_le_of_tsum_le hp hC (tsum_le_of_sum_le ((lp.mem_ℓp f).summable hp) hf)
+
+end compare_pointwise
+
 section normed_space
 
 variables {𝕜 : Type*} [normed_field 𝕜] [Π i, normed_space 𝕜 (E i)]
@@ -522,5 +592,132 @@ begin
 end
 
 end normed_space
+
+section topology
+
+open filter
+open_locale topological_space uniformity
+
+/-- The coercion from `lp E p` to `Π i, E i` is uniformly continuous. -/
+lemma uniform_continuous_coe [_i : fact (1 ≤ p)] : uniform_continuous (coe : lp E p → Π i, E i) :=
+begin
+  have hp : p ≠ 0 := (ennreal.zero_lt_one.trans_le _i.elim).ne',
+  rw uniform_continuous_pi,
+  intros i,
+  rw normed_group.uniformity_basis_dist.uniform_continuous_iff normed_group.uniformity_basis_dist,
+  intros ε hε,
+  refine ⟨ε, hε, _⟩,
+  rintros f g (hfg : ∥f - g∥ < ε),
+  have : ∥f i - g i∥ ≤ ∥f - g∥ := norm_apply_le_norm hp (f - g) i,
+  exact this.trans_lt hfg,
+end
+
+variables {F : ℕ → lp E p}
+
+lemma norm_apply_le_of_tendsto {C : ℝ} {F : ℕ → lp E ∞} (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C)
+  {f : Π a, E a} (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) (a : α) :
+  ∥f a∥ ≤ C :=
+begin
+  have : tendsto (λ k, ∥F k a∥) at_top (𝓝 ∥f a∥) :=
+    (tendsto.comp (continuous_apply a).continuous_at hf).norm,
+  refine le_of_tendsto this (hCF.mono _),
+  intros k hCFk,
+  exact (norm_apply_le_norm ennreal.top_ne_zero (F k) a).trans hCFk,
+end
+
+variables [_i : fact (1 ≤ p)]
+
+include _i
+
+lemma sum_rpow_le_of_tendsto (hp : p ≠ ⊤) {C : ℝ} (hC : 0 ≤ C)
+  (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C)
+  {f : Π a, E a} (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) (s : finset α) :
+  ∑ (i : α) in s, ∥f i∥ ^ p.to_real ≤ C ^ p.to_real :=
+begin
+  have hp' : p ≠ 0 := (ennreal.zero_lt_one.trans_le _i.elim).ne',
+  have hp'' : 0 < p.to_real := ennreal.to_real_pos hp' hp,
+  have hC' : 0 ≤ C ^ p.to_real := real.rpow_nonneg_of_nonneg hC _,
+  let G : (Π a, E a) → ℝ := λ f, ∑ a in s, ∥f a∥ ^ p.to_real,
+  have hG : continuous G,
+  { refine continuous_finset_sum s _,
+    intros a ha,
+    have : continuous (λ f : Π a, E a, f a):= continuous_apply a,
+    exact this.norm.rpow_const (λ _, or.inr hp''.le) },
+  refine le_of_tendsto (hG.continuous_at.tendsto.comp hf) _,
+  refine hCF.mono _,
+  intros k hCFk,
+  refine (lp.sum_rpow_le_norm_rpow hp'' (F k) s).trans _,
+  exact real.rpow_le_rpow (norm_nonneg _) hCFk hp''.le,
+end
+
+/-- "Semicontinuity of the `lp` norm": If all sufficiently large elements of a sequence in `lp E p`
+ have `lp` norm `≤ C`, then the pointwise limit, if it exists, also has `lp` norm `≤ C`. -/
+lemma norm_le_of_tendsto {C : ℝ} (hC : 0 ≤ C) (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C) {f : lp E p}
+  (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) :
+  ∥f∥ ≤ C :=
+begin
+  tactic.unfreeze_local_instances,
+  rcases eq_top_or_lt_top p with rfl | hp,
+  { apply norm_le_of_forall_le hC,
+    exact norm_apply_le_of_tendsto hCF hf, },
+  { have : 0 < p := ennreal.zero_lt_one.trans_le _i.elim,
+    have hp' : 0 < p.to_real := ennreal.to_real_pos this.ne' hp.ne,
+    apply norm_le_of_forall_sum_le hp' hC,
+    exact sum_rpow_le_of_tendsto hp.ne hC hCF hf, }
+end
+
+/-- If `f` is the pointwise limit of a bounded sequence in `lp E p`, then `f` is in `lp E p`. -/
+lemma mem_ℓp_of_tendsto (hF : metric.bounded (set.range F)) {f : Π a, E a}
+  (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) :
+  mem_ℓp f p :=
+begin
+  obtain ⟨C, hC, hCF'⟩ := hF.exists_norm_le',
+  have hCF : ∀ k, ∥F k∥ ≤ C := λ k, hCF' _ ⟨k, rfl⟩,
+  tactic.unfreeze_local_instances,
+  rcases eq_top_or_lt_top p with rfl | hp,
+  { apply mem_ℓp_infty,
+    use C,
+    rintros _ ⟨a, rfl⟩,
+    refine norm_apply_le_of_tendsto (eventually_of_forall hCF) hf a, },
+  { have : 0 < p := ennreal.zero_lt_one.trans_le _i.elim,
+    have hp' : 0 < p.to_real := ennreal.to_real_pos this.ne' hp.ne,
+    have hC' : 0 ≤ C ^ p.to_real := real.rpow_nonneg_of_nonneg hC _,
+    apply mem_ℓp_gen' hp' hC',
+    exact sum_rpow_le_of_tendsto hp.ne hC (eventually_of_forall hCF) hf },
+end
+
+/-- If a sequence is Cauchy in the `lp E p` topology and pointwise convergent to a element `f` of
+`lp E p`, then it converges to `f` in the `lp E p` topology. -/
+lemma tendsto_lp_of_tendsto_pi (hF : cauchy_seq F) {f : lp E p}
+  (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) :
+  tendsto F at_top (𝓝 f) :=
+begin
+  rw metric.nhds_basis_closed_ball.tendsto_right_iff,
+  intros ε hε,
+  have hε' : {p : (lp E p) × (lp E p) | ∥p.1 - p.2∥ < ε} ∈ 𝓤 (lp E p),
+  { exact normed_group.uniformity_basis_dist.mem_of_mem hε },
+  refine (hF.eventually_eventually hε').mono _,
+  rintros n (hn : ∀ᶠ l in at_top, ∥(λ f, F n - f) (F l)∥ < ε),
+  refine norm_le_of_tendsto hε.le (hn.mono (λ k hk, hk.le)) _,
+  rw tendsto_pi_nhds,
+  intros a,
+  exact (hf.apply a).const_sub (F n a),
+end
+
+variables [Π a, complete_space (E a)]
+
+instance : complete_space (lp E p) :=
+metric.complete_of_cauchy_seq_tendsto
+begin
+  intros F hF,
+  -- A Cauchy sequence in `lp E p` is pointwise convergent; let `f` be the pointwise limit.
+  obtain ⟨f, hf⟩ := cauchy_seq_tendsto_of_complete (uniform_continuous_coe.comp_cauchy_seq hF),
+  -- Since the Cauchy sequence is bounded, its pointwise limit `f` is in `lp E p`.
+  have hf' : mem_ℓp f p := mem_ℓp_of_tendsto hF.bounded hf,
+  -- And therefore `f` is its limit in the `lp E p` topology as well as pointwise.
+  exact ⟨⟨f, hf'⟩, tendsto_lp_of_tendsto_pi hF hf⟩
+end
+
+end topology
 
 end lp
