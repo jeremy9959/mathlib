@@ -1592,10 +1592,13 @@ open_locale direct_sum
 def orthogonal_family (V : ι → submodule 𝕜 E) : Prop :=
 ∀ ⦃i j⦄, i ≠ j → ∀ {v : E} (hv : v ∈ V i) {w : E} (hw : w ∈ V j), ⟪v, w⟫ = 0
 
-variables {𝕜} {V : ι → submodule 𝕜 E}
+variables {𝕜} {V : ι → submodule 𝕜 E} (hV : orthogonal_family 𝕜 V)
+  [dec_V : Π i (x : V i), decidable (x ≠ 0)]
+
+include hV
 
 include dec_ι
-lemma orthogonal_family.eq_ite (hV : orthogonal_family 𝕜 V) {i j : ι} (v : V i) (w : V j) :
+lemma orthogonal_family.eq_ite  {i j : ι} (v : V i) (w : V j) :
   ⟪(v:E), w⟫ = ite (i = j) ⟪(v:E), w⟫ 0 :=
 begin
   split_ifs,
@@ -1603,9 +1606,8 @@ begin
   { exact hV h v.prop w.prop }
 end
 
-lemma orthogonal_family.inner_right_dfinsupp (hV : orthogonal_family 𝕜 V)
-  [dec_V : Π i (x : V i), decidable (x ≠ 0)]
-  (l : Π₀ i, V i) (i : ι) (v : V i) :
+include dec_V
+lemma orthogonal_family.inner_right_dfinsupp (l : ⨁ i, V i) (i : ι) (v : V i) :
   ⟪(v : E), l.sum (λ i, (coe : V i → E))⟫ = ⟪v, l i⟫ :=
 calc ⟪(v : E), l.sum (λ i, (coe : V i → E))⟫
     = l.sum (λ j, λ w, ⟪(v:E), w⟫) : dfinsupp.inner_sum (λ i : ι, (coe : V i → E)) l (v:E)
@@ -1618,10 +1620,9 @@ begin
   intros h,
   simp [h]
 end
-omit dec_ι
+omit dec_ι dec_V
 
-lemma orthogonal_family.inner_right_fintype
-  [fintype ι] (hV : orthogonal_family 𝕜 V) (l : Π i, V i) (i : ι) (v : V i) :
+lemma orthogonal_family.inner_right_fintype [fintype ι] (l : Π i, V i) (i : ι) (v : V i) :
   ⟪(v : E), ∑ j : ι, l j⟫ = ⟪v, l i⟫ :=
 by classical;
 calc ⟪(v : E), ∑ j : ι, l j⟫
@@ -1630,14 +1631,12 @@ calc ⟪(v : E), ∑ j : ι, l j⟫
   congr_arg (finset.sum finset.univ) $ funext $ λ j, (hV.eq_ite v (l j))
 ... = ⟪v, l i⟫ : by simp
 
-include dec_ι
-lemma orthogonal_family.inner_dfinsupp (hV : orthogonal_family 𝕜 V)
-  [dec_V : Π i (x : V i), decidable (x ≠ 0)] (l₁ l₂ : Π₀ i, V i) :
+include dec_ι dec_V
+lemma orthogonal_family.inner_dfinsupp (l₁ l₂ : ⨁ i, V i) :
   ⟪l₁.sum (λ i, (coe : V i → E)), l₂.sum (λ i, (coe : V i → E))⟫ = l₁.sum (λ i f, ⟪f, l₂ i⟫) :=
 by simp [dfinsupp.sum_inner (λ i : ι, (coe : V i → E)) l₁, hV.inner_right_dfinsupp]
 
-lemma orthogonal_family.norm_sum (hV : orthogonal_family 𝕜 V)
-  [dec_V : Π i (x : V i), decidable (x ≠ 0)] (l : Π₀ i, V i) (i : ι) (v : V i) :
+lemma orthogonal_family.norm_sum (l : ⨁ i, V i) (i : ι) (v : V i) :
   ∥l.sum (λ i x, (x:E))∥ ^ 2 = l.sum (λ i x, ∥x∥ ^ 2) :=
 begin
   suffices : (∥dfinsupp.sum l (λ i x, (x:E))∥ ^ 2 : 𝕜) = dfinsupp.sum l (λ i x, ∥x∥ ^ 2),
@@ -1652,19 +1651,24 @@ begin
     sorry },
   -- apply dfinsupp.congr_sum,
 end
-omit dec_ι
+omit dec_V dec_ι
 
+lemma orthogonal_family.inner_sum (l₁ l₂ : Π i, V i) (s : finset ι) :
+  ⟪∑ i in s, (l₁ i : E), ∑ j in s, (l₂ j : E)⟫ = ∑ i in s, ⟪l₁ i, l₂ i⟫ :=
+sorry
+
+omit hV
 -- move this
 lemma submodule.subtype_eq_coe {R : Type*} {M : Type*} [semiring R] [add_comm_monoid M]
   {module_M : module R M} (p : submodule R M) :
   ⇑(p.subtype) = (coe : p → M) :=
 rfl
+include hV
 
 /-- An orthogonal family forms an independent family of subspaces; that is, any collection of
 elements each from a different subspace in the family is linearly independent. In particular, the
 pairwise intersections of elements of the family are 0. -/
-lemma orthogonal_family.independent (hV : orthogonal_family 𝕜 V) :
-  complete_lattice.independent V :=
+lemma orthogonal_family.independent : complete_lattice.independent V :=
 begin
   classical,
   apply complete_lattice.independent_of_dfinsupp_lsum_injective,
@@ -1680,13 +1684,12 @@ end
 
 /-- The composition of an orthogonal family of subspaces with an injective function is also an
 orthogonal family. -/
-lemma orthogonal_family.comp (hV : orthogonal_family 𝕜 V) {γ : Type*} {f : γ → ι}
-  (hf : function.injective f) :
+lemma orthogonal_family.comp {γ : Type*} {f : γ → ι} (hf : function.injective f) :
   orthogonal_family 𝕜 (V ∘ f) :=
 λ i j hij v hv w hw, hV (hf.ne hij) hv hw
 
-lemma orthogonal_family.orthonormal_sigma_orthonormal (hV : orthogonal_family 𝕜 V) {α : ι → Type*}
-  {v_family : Π i, (α i) → V i} (hv_family : ∀ i, orthonormal 𝕜 (v_family i)) :
+lemma orthogonal_family.orthonormal_sigma_orthonormal {α : ι → Type*} {v_family : Π i, (α i) → V i}
+  (hv_family : ∀ i, orthonormal 𝕜 (v_family i)) :
   orthonormal 𝕜 (λ a : Σ i, α i, (v_family a.1 a.2 : E)) :=
 begin
   split,
@@ -1701,7 +1704,7 @@ begin
 end
 
 include dec_ι
-lemma direct_sum.submodule_is_internal.collected_basis_orthonormal (hV : orthogonal_family 𝕜 V)
+lemma direct_sum.submodule_is_internal.collected_basis_orthonormal
   (hV_sum : direct_sum.submodule_is_internal V) {α : ι → Type*}
   {v_family : Π i, basis (α i) 𝕜 (V i)} (hv_family : ∀ i, orthonormal 𝕜 (v_family i)) :
   orthonormal 𝕜 (hV_sum.collected_basis v_family) :=
