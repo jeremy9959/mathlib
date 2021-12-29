@@ -668,7 +668,7 @@ lemma eval_nat_cast_map (f : R →+* S) (p : polynomial R) (n : ℕ) :
 begin
   apply polynomial.induction_on' p,
   { intros p q hp hq, simp only [hp, hq, map_add, ring_hom.map_add, eval_add] },
-  { intros n r, simp only [map_nat_cast f, eval_monomial, map_monomial, f.map_pow, f.map_mul] }
+  { intros n r, simp only [_root_.map_nat_cast, eval_monomial, map_monomial, f.map_pow, f.map_mul] }
 end
 
 @[simp]

@@ -683,7 +683,7 @@ lemma add_monoid_hom.apply_nat [add_monoid M] (f : ℕ →+ M) (n : ℕ) :
   f n = n • (f 1) :=
 by rw [← multiples_hom_symm_apply, ← multiples_hom_apply, equiv.apply_symm_apply]
 
-/-! `add_monoid_hom.ext_nat` is defined in `data.nat.cast` -/
+/-! `add_monoid_hom.ext_nat` (and its generalised version `ext_nat'`) are in `data.nat.cast` -/
 
 lemma add_monoid_hom.apply_int [add_group M] (f : ℤ →+ M) (n : ℤ) :
   f n = n • (f 1) :=
