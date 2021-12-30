@@ -1082,6 +1082,9 @@ lemma aeval_eq_eval₂_hom (p : mv_polynomial σ R) :
 
 @[simp] lemma aeval_C (r : R) : aeval f (C r) = algebra_map R S₁ r := eval₂_C _ _ _
 
+-- `simp` doesn't much like `map_nat_cast`.
+@[simp] lemma aeval_map_nat_cast (n : ℕ) : aeval f (n : mv_polynomial σ R) = n := map_nat_cast _ n
+
 theorem aeval_unique (φ : mv_polynomial σ R →ₐ[R] S₁) :
   φ = aeval (φ ∘ X) :=
 by { ext i, simp }
