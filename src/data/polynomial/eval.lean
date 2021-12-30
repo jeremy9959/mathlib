@@ -506,7 +506,7 @@ def map_ring_hom (f : R →+* S) : polynomial R →+* polynomial S :=
 @[simp] lemma coe_map_ring_hom (f : R →+* S) : ⇑(map_ring_hom f) = map f := rfl
 
 @[simp] theorem map_nat_cast (n : ℕ) : (n : polynomial R).map f = n :=
-map_nat_cast (map_ring_hom f) n
+@map_nat_cast (polynomial R) (polynomial S) _ _ _ _ (map_ring_hom f) n
 
 @[simp]
 lemma coeff_map (n : ℕ) : coeff (p.map f) n = f (coeff p n) :=
