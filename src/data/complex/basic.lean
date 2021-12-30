@@ -367,7 +367,7 @@ norm_sq.map_div z w
 /-! ### Cast lemmas -/
 
 @[simp, norm_cast] theorem of_real_nat_cast (n : ℕ) : ((n : ℝ) : ℂ) = n :=
-map_nat_cast of_real n
+@map_nat_cast ℝ ℂ _ _ _ _ of_real n
 
 @[simp, norm_cast] lemma nat_cast_re (n : ℕ) : (n : ℂ).re = n :=
 by rw [← of_real_nat_cast, of_real_re]
