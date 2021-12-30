@@ -560,7 +560,7 @@ begin
   -- todo: 11071 will make "proper" `ne_zero` support
   suffices : ne_zero (n : fraction_ring R),
   { exact this.out },
-  apply ne_zero.of_injective hf,
+  apply ne_zero.nat_of_injective hf,
   exact ⟨hn⟩
 end
 

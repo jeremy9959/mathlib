@@ -50,11 +50,11 @@ instance char_zero [ne_zero n] [add_monoid M] [has_one M] [char_zero M] : ne_zer
 lemma of_map [has_zero R] [has_zero M] [zero_hom_class F R M] (f : F) [ne_zero (f r)] :
   ne_zero r := ⟨λ h, ne (f r) $ by convert map_zero f⟩
 
-lemma of_injective' {r : R} [has_zero R] [h : ne_zero r] [has_zero M] [zero_hom_class F R M]
+lemma of_injective {r : R} [has_zero R] [h : ne_zero r] [has_zero M] [zero_hom_class F R M]
   {f : F} (hf : function.injective f) : ne_zero (f r) :=
 ⟨by { rw ←map_zero f, exact hf.ne (ne r) }⟩
 
-lemma of_injective [non_assoc_semiring M] [non_assoc_semiring R] [h : ne_zero (n : R)]
+lemma nat_of_injective [non_assoc_semiring M] [non_assoc_semiring R] [h : ne_zero (n : R)]
   [ring_hom_class F R M] {f : F} (hf : function.injective f) : ne_zero (n : M) :=
  ⟨λ h, (ne_zero.ne' n R) $ hf $ by rwa [map_nat_cast, map_zero]⟩
 
