@@ -19,13 +19,13 @@ instance subsemiring (R : Type u) [semiring R] (p : ℕ) [char_p R p] (S : subse
   char_p S p :=
 ⟨λ x, iff.symm $ (char_p.cast_eq_zero_iff R p x).symm.trans
 ⟨λ h, subtype.eq $ show S.subtype x = 0, by rw [map_nat_cast, h],
-  λ h, map_nat_cast S.subtype x ▸ by rw [h, ring_hom.map_zero]⟩⟩
+ λ h, by { apply_fun S.subtype at h, rwa [map_nat_cast, map_zero] at h }⟩⟩
 
 instance subring (R : Type u) [ring R] (p : ℕ) [char_p R p] (S : subring R) :
   char_p S p :=
 ⟨λ x, iff.symm $ (char_p.cast_eq_zero_iff R p x).symm.trans
 ⟨λ h, subtype.eq $ show S.subtype x = 0, by rw [map_nat_cast, h],
-  λ h, map_nat_cast S.subtype x ▸ by rw [h, ring_hom.map_zero]⟩⟩
+ λ h, by { apply_fun S.subtype at h, rwa [map_nat_cast, map_zero] at h }⟩⟩
 
 instance subring' (R : Type u) [comm_ring R] (p : ℕ) [char_p R p] (S : subring R) :
   char_p S p :=

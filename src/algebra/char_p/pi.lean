@@ -20,7 +20,7 @@ instance pi (ι : Type u) [hi : nonempty ι] (R : Type v) [semiring R] (p : ℕ)
 ⟨λ x, let ⟨i⟩ := hi in iff.symm $ (char_p.cast_eq_zero_iff R p x).symm.trans
 ⟨λ h, funext $ λ j, show pi.eval_ring_hom (λ _, R) j (↑x : ι → R) = 0,
     by rw [map_nat_cast, h],
-  λ h, map_nat_cast (pi.eval_ring_hom (λ _: ι, R) i) x ▸ by rw [h, ring_hom.map_zero]⟩⟩
+ λ h, by { apply_fun (pi.eval_ring_hom (λ _: ι, R) i) at h, rwa [map_nat_cast, map_zero] at h }⟩⟩
 
 -- diamonds
 instance pi' (ι : Type u) [hi : nonempty ι] (R : Type v) [comm_ring R] (p : ℕ) [char_p R p] :

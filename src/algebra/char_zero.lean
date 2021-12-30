@@ -200,7 +200,7 @@ section ring_hom
 variables {R S : Type*} [semiring R] [semiring S]
 
 lemma ring_hom.char_zero (ϕ : R →+* S) [hS : char_zero S] : char_zero R :=
-⟨λ a b h, char_zero.cast_injective (by rw [←map_nat_cast ϕ, ←map_nat_cast ϕ, h])⟩
+⟨λ a b h, @char_zero.cast_injective S _ _ _ _ _ $ by rw [← map_nat_cast ϕ a, ← map_nat_cast ϕ b, h]⟩
 
 lemma ring_hom.char_zero_iff {ϕ : R →+* S} (hϕ : function.injective ϕ) :
   char_zero R ↔ char_zero S :=
