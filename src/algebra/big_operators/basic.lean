@@ -640,8 +640,9 @@ lemma prod_extend_by_one [decidable_eq α] (s : finset α) (f : α → β) :
 prod_congr rfl $ λ i hi, if_pos hi
 
 @[simp, to_additive]
-lemma prod_dite_eq [decidable_eq α] (s : finset α) (a : α) (b : Π x : α, a = x → β) :
-  (∏ x in s, (if h : a = x then b x h else 1)) = ite (a ∈ s) (b a rfl) 1 :=
+lemma prod_dite_eq [decidable_eq α] (s : finset α) (a : α) [_i : decidable (a ∈ s)]
+  (b : Π x : α, a = x → β) :
+  (∏ x in s, (if h : a = x then b x h else 1)) = @ite _ (a ∈ s) _i (b a rfl) 1 :=
 begin
   split_ifs with h,
   { rw [finset.prod_eq_single a, dif_pos rfl],
@@ -652,8 +653,9 @@ begin
 end
 
 @[simp, to_additive]
-lemma prod_dite_eq' [decidable_eq α] (s : finset α) (a : α) (b : Π x : α, x = a → β) :
-  (∏ x in s, (if h : x = a then b x h else 1)) = ite (a ∈ s) (b a rfl) 1 :=
+lemma prod_dite_eq' [decidable_eq α] (s : finset α) (a : α) [_i : decidable (a ∈ s)]
+  (b : Π x : α, x = a → β) :
+  (∏ x in s, (if h : x = a then b x h else 1)) = @ite _ (a ∈ s) _i (b a rfl) 1 :=
 begin
   split_ifs with h,
   { rw [finset.prod_eq_single a, dif_pos rfl],
@@ -663,8 +665,9 @@ begin
     intros, rw dif_neg, intro, cc }
 end
 
-@[simp, to_additive] lemma prod_ite_eq [decidable_eq α] (s : finset α) (a : α) (b : α → β) :
-  (∏ x in s, (ite (a = x) (b x) 1)) = ite (a ∈ s) (b a) 1 :=
+@[simp, to_additive] lemma prod_ite_eq [decidable_eq α] (s : finset α) (a : α)
+  [_i : decidable (a ∈ s)] (b : α → β) :
+  (∏ x in s, (ite (a = x) (b x) 1)) = @ite _ (a ∈ s) _i (b a) 1 :=
 prod_dite_eq s a (λ x _, b x)
 
 /--
@@ -673,8 +676,9 @@ prod_dite_eq s a (λ x _, b x)
 
   The difference with `prod_ite_eq` is that the arguments to `eq` are swapped.
 -/
-@[simp, to_additive] lemma prod_ite_eq' [decidable_eq α] (s : finset α) (a : α) (b : α → β) :
-  (∏ x in s, (ite (x = a) (b x) 1)) = ite (a ∈ s) (b a) 1 :=
+@[simp, to_additive] lemma prod_ite_eq' [decidable_eq α] (s : finset α) (a : α)
+  [_i : decidable (a ∈ s)] (b : α → β) :
+  (∏ x in s, (ite (x = a) (b x) 1)) = @ite _ (a ∈ s) _i (b a) 1 :=
 prod_dite_eq' s a (λ x _, b x)
 
 @[to_additive]

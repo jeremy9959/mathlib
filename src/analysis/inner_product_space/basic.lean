@@ -1654,14 +1654,6 @@ begin
 end
 omit dec_V dec_ι
 
-omit hV
-@[simp]
-theorem _root_.finset.sum_ite_eq'' {β : Type*} {α : Type*} [add_comm_monoid β]
-  (s : finset α) [decidable_eq α] (a : α) [_i : decidable (a ∈ s)] (b : α → β) :
-∑ (x : α) in s, ite (x = a) (b x) 0 = @ite _ (a ∈ s) _i (b a) 0 :=
-sorry
-include hV
-
 lemma orthogonal_family.inner_sum (l₁ l₂ : Π i, V i) (s : finset ι) :
   ⟪∑ i in s, (l₁ i : E), ∑ j in s, (l₂ j : E)⟫ = ∑ i in s, ⟪l₁ i, l₂ i⟫ :=
 by classical;
@@ -1685,14 +1677,6 @@ begin
   { simp [← inner_self_eq_norm_sq_to_K, hV.inner_sum] },
   exact_mod_cast this,
 end
-
-omit hV
--- move this
-lemma submodule.subtype_eq_coe {R : Type*} {M : Type*} [semiring R] [add_comm_monoid M]
-  {module_M : module R M} (p : submodule R M) :
-  ⇑(p.subtype) = (coe : p → M) :=
-rfl
-include hV
 
 /-- An orthogonal family forms an independent family of subspaces; that is, any collection of
 elements each from a different subspace in the family is linearly independent. In particular, the
