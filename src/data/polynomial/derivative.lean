@@ -293,7 +293,7 @@ rfl
 
 @[simp] lemma derivative_cast_nat {n : ℕ} : derivative (n : polynomial R) = 0 :=
 begin
-  rw ← map_nat_cast C n,
+  rw ← C_eq_nat_cast,
   exact derivative_C,
 end
 
