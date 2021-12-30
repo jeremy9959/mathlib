@@ -1636,11 +1636,12 @@ lemma orthogonal_family.inner_dfinsupp (l₁ l₂ : ⨁ i, V i) :
   ⟪l₁.sum (λ i, (coe : V i → E)), l₂.sum (λ i, (coe : V i → E))⟫ = l₁.sum (λ i f, ⟪f, l₂ i⟫) :=
 by simp [dfinsupp.sum_inner (λ i : ι, (coe : V i → E)) l₁, hV.inner_right_dfinsupp]
 
-lemma orthogonal_family.norm_sum (l : ⨁ i, V i) (i : ι) (v : V i) :
+lemma orthogonal_family.norm_sum_dfinsupp (l : ⨁ i, V i) (i : ι) (v : V i) :
   ∥l.sum (λ i x, (x:E))∥ ^ 2 = l.sum (λ i x, ∥x∥ ^ 2) :=
 begin
   suffices : (∥dfinsupp.sum l (λ i x, (x:E))∥ ^ 2 : 𝕜) = dfinsupp.sum l (λ i x, ∥x∥ ^ 2),
-  { sorry },
+  { norm_cast at this,
+    sorry },
   simp [← inner_self_eq_norm_sq_to_K],
   rw hV.inner_dfinsupp,
   apply @dfinsupp.induction _ (λ i, V i) _ _ _ l,
@@ -1653,9 +1654,37 @@ begin
 end
 omit dec_V dec_ι
 
+omit hV
+@[simp]
+theorem _root_.finset.sum_ite_eq'' {β : Type*} {α : Type*} [add_comm_monoid β]
+  (s : finset α) [decidable_eq α] (a : α) [_i : decidable (a ∈ s)] (b : α → β) :
+∑ (x : α) in s, ite (x = a) (b x) 0 = @ite _ (a ∈ s) _i (b a) 0 :=
+sorry
+include hV
+
 lemma orthogonal_family.inner_sum (l₁ l₂ : Π i, V i) (s : finset ι) :
   ⟪∑ i in s, (l₁ i : E), ∑ j in s, (l₂ j : E)⟫ = ∑ i in s, ⟪l₁ i, l₂ i⟫ :=
-sorry
+by classical;
+calc ⟪∑ i in s, (l₁ i : E), ∑ j in s, (l₂ j : E)⟫
+    = ∑ j in s, ∑ i in s, ⟪(l₁ i : E), l₂ j⟫ :  by { simp [sum_inner, inner_sum], }
+... = ∑ i in s, ∑ j in s, ite (j = i) ⟪(l₁ j : E), l₂ i⟫ 0 :
+begin
+  congr,
+  ext i,
+  congr,
+  ext j,
+  apply hV.eq_ite,
+end
+... = ∑ (i : ι) in s, ite (i ∈ s) ⟪(l₁ i : E), l₂ i⟫ 0 : by simp [finset.sum_ite_eq'']
+... = ∑ i in s, ⟪l₁ i, l₂ i⟫ : by rw finset.sum_ite_of_true; simp
+
+lemma orthogonal_family.norm_sum (l : Π i, V i) (s : finset ι) :
+  ∥∑ i in s, (l i : E)∥ ^ 2 = ∑ i in s, ∥l i∥ ^ 2 :=
+begin
+  have : (∥∑ i in s, (l i : E)∥ ^ 2 : 𝕜 ) = ∑ i in s, ∥l i∥ ^ 2,
+  { simp [← inner_self_eq_norm_sq_to_K, hV.inner_sum] },
+  exact_mod_cast this,
+end
 
 omit hV
 -- move this
@@ -1710,6 +1739,58 @@ lemma direct_sum.submodule_is_internal.collected_basis_orthonormal
   orthonormal 𝕜 (hV_sum.collected_basis v_family) :=
 by simpa using hV.orthonormal_sigma_orthonormal hv_family
 omit dec_ι
+
+omit hV
+@[to_additive] -- move
+lemma finset.prod_div_prod {β : Type*} {α : Type*} {s₁ s₂ : finset α} {f : α → β}
+  [comm_group β] [decidable_eq α] :
+  (∏ (x : α) in s₂, f x) / (∏ (x : α) in s₁, f x)
+  = (∏ (x : α) in s₂ \ s₁, f x) / (∏ (x : α) in s₁ \ s₂, f x) :=
+begin
+  rw ← finset.prod_sdiff (@inf_le_left _ _ s₁ s₂),
+  rw ← finset.prod_sdiff (@inf_le_right _ _ s₁ s₂),
+  simp,
+end
+include hV
+
+lemma baz [complete_space E] (hV : orthogonal_family 𝕜 V)
+  {f : Π i, V i} (hf : summable (λ i, ∥f i∥ ^ 2)) :
+  summable (λ i, (f i : E)) :=
+begin
+  classical,
+  rw summable_iff_cauchy_seq_finset at ⊢ hf,
+  rw normed_group.cauchy_seq_iff  at ⊢ hf,
+  intros ε hε,
+  have hε' : 0 < (ε / 2) ^ 2 := sq_pos_of_pos (half_pos hε),
+  obtain ⟨a, H⟩ := hf _ hε',
+  use a,
+  intros s₁ s₂ hs₁ hs₂,
+  have has : a ≤ s₁ ⊓ s₂ := le_inf hs₁ hs₂,
+  have Hs₁ : ∑ (x : ι) in s₁ \ s₂, ∥f x∥ ^ 2 < (ε / 2) ^ 2,
+  { convert H _ _ hs₁ has,
+    rw finset.sum_sub_sum,
+    simp,
+    -- rw finset.inter_comm,
+    -- rw finset.sdiff_inter_self,
+    rw [← finset.sum_sdiff (@inf_le_left _ _ s₁ s₂), finset.inf_eq_inter,
+      finset.sdiff_inter_self_left, add_tsub_cancel_right, real.norm_eq_abs,
+      _root_.abs_of_nonneg],
+    apply finset.sum_nonneg,
+    simp },
+  have Hs₂ : ∑ (x : ι) in s₂ \ s₁, ∥f x∥ ^ 2 < (ε / 2) ^ 2,
+  { convert H _ _ hs₂ has,
+    rw [← finset.sum_sdiff (@inf_le_right _ _ s₁ s₂), finset.inf_eq_inter,
+      finset.sdiff_inter_self_right, add_tsub_cancel_right, real.norm_eq_abs,
+      _root_.abs_of_nonneg],
+    apply finset.sum_nonneg,
+    simp },
+  calc _ = ∥∑ (x : ι) in s₁ \ a, (f x : E) - ∑ (x : ι) in s₂ \ a, (f x : E)∥ : by { congr' 1, abel }
+  ... ≤ ∥∑ (x : ι) in s₁ \ a, (f x : E)∥ + ∥∑ (x : ι) in s₂ \ a, (f x : E)∥ : norm_sub_le _ _
+  ... < ε/2 + ε/2 : add_lt_add _ _
+  ... = ε : add_halves ε,
+  -- nonnegativity and nice fact about finsets
+  repeat { sorry }
+end
 
 end orthogonal_family
 
