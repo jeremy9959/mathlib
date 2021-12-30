@@ -12,6 +12,7 @@ import field_theory.splitting_field
 import number_theory.arithmetic_function
 import ring_theory.roots_of_unity
 import field_theory.ratfunc
+import algebra.ne_zero
 
 /-!
 # Cyclotomic polynomials.
@@ -550,12 +551,17 @@ begin
 end
 
 lemma is_root_cyclotomic_iff {n : ℕ} {R : Type*} [comm_ring R] [is_domain R]
-  {μ : R} (hn : (n : R) ≠ 0) : is_root (cyclotomic n R) μ ↔ is_primitive_root μ n  :=
+  {μ : R} (hn : (n : R) ≠ 0) : is_root (cyclotomic n R) μ ↔ is_primitive_root μ n :=
 begin
   let f := algebra_map R (fraction_ring R),
   have hf : function.injective f := is_localization.injective _ le_rfl,
   rw [←is_root_map_iff hf, ←is_primitive_root.map_iff_of_injective hf, map_cyclotomic,
-      ←is_root_cyclotomic_iff' $ by simpa only [map_nat_cast f, hn] using f.injective_iff.mp hf n]
+      ←is_root_cyclotomic_iff'],
+  -- todo: 11071 will make "proper" `ne_zero` support
+  suffices : ne_zero (n : fraction_ring R),
+  { exact this.out },
+  apply ne_zero.of_injective hf,
+  exact ⟨hn⟩
 end
 
 lemma eq_cyclotomic_iff {R : Type*} [comm_ring R] {n : ℕ} (hpos: 0 < n)

@@ -55,8 +55,8 @@ lemma of_injective' {r : R} [has_zero R] [h : ne_zero r] [has_zero M] [zero_hom_
 ⟨by { rw ←map_zero f, exact hf.ne (ne r) }⟩
 
 lemma of_injective [non_assoc_semiring M] [non_assoc_semiring R] [h : ne_zero (n : R)]
-  {f : R →+* M} (hf : function.injective f) : ne_zero (n : M) :=
- ⟨λ h, (ne_zero.ne' n R) $ hf $ by simpa⟩
+  [ring_hom_class F R M] {f : F} (hf : function.injective f) : ne_zero (n : M) :=
+ ⟨λ h, (ne_zero.ne' n R) $ hf $ by rwa [map_nat_cast, map_zero]⟩
 
 variables (R M)
 
