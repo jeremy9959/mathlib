@@ -246,7 +246,7 @@ protected theorem quotient_map (surj : surjective f) : quotient_map f :=
 
 lemma _root_.affine_map.is_open_map {P Q : Type*}
   [metric_space P] [normed_add_torsor E P] [metric_space Q] [normed_add_torsor F Q]
-  {f : P →ᵃ[𝕜] Q} (hf : continuous f) (surj : surjective f) :
+  (f : P →ᵃ[𝕜] Q) (hf : continuous f) (surj : surjective f) :
   is_open_map f :=
 affine_map.is_open_map_linear_iff.mp $ continuous_linear_map.is_open_map
   { cont := affine_map.continuous_linear_iff.mpr hf, .. f.linear }

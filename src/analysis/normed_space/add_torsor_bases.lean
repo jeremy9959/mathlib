@@ -32,13 +32,13 @@ variables (b : affine_basis ι 𝕜 P)
 
 @[continuity]
 lemma continuous_barycentric_coord (i : ι) : continuous (b.coord i) :=
-affine_map.continuous_of_finite_dimensional _
+(b.coord i).continuous_of_finite_dimensional
 
 local attribute [instance] finite_dimensional.complete
 
 lemma is_open_map_barycentric_coord [nontrivial ι] (i : ι) :
   is_open_map (b.coord i) :=
-open_mapping_affine (continuous_barycentric_coord b i) (b.surjective_coord i)
+(b.coord i).is_open_map (continuous_barycentric_coord b i) (b.surjective_coord i)
 
 end barycentric
 
@@ -69,8 +69,9 @@ begin
     have : convex_hull ℝ (range b.points) = ⋂ i, (b.coord i)⁻¹' Ici 0,
     { rw convex_hull_affine_basis_eq_nonneg_barycentric b, ext, simp, },
     ext,
-    simp only [this, interior_Inter_of_fintype, ← is_open_map.preimage_interior_eq_interior_preimage
-      (continuous_barycentric_coord b _) (is_open_map_barycentric_coord b _),
+    simp only [this, interior_Inter_of_fintype,
+      ← (is_open_map_barycentric_coord b _).preimage_interior_eq_interior_preimage
+        (continuous_barycentric_coord b _),
       interior_Ici, mem_Inter, mem_set_of_eq, mem_Ioi, mem_preimage], },
 end
 
