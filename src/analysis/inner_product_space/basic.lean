@@ -1655,7 +1655,7 @@ lemma orthogonal_family.inner_sum (l₁ l₂ : Π i, V i) (s : finset ι) :
 by classical;
 calc ⟪∑ i in s, (l₁ i : E), ∑ j in s, (l₂ j : E)⟫
     = ∑ j in s, ∑ i in s, ⟪(l₁ i : E), l₂ j⟫ :  by { simp [sum_inner, inner_sum], }
-... = ∑ i in s, ∑ j in s, ite (j = i) ⟪(l₁ j : E), l₂ i⟫ 0 :
+... = ∑ j in s, ∑ i in s, ite (i = j) ⟪(l₁ i : E), l₂ j⟫ 0 :
 begin
   congr,
   ext i,
@@ -1663,13 +1663,12 @@ begin
   ext j,
   apply hV.eq_ite,
 end
-... = ∑ (i : ι) in s, ite (i ∈ s) ⟪(l₁ i : E), l₂ i⟫ 0 : by simp [finset.sum_ite_eq']
-... = ∑ i in s, ⟪l₁ i, l₂ i⟫ : by rw finset.sum_ite_of_true; simp
+... = ∑ i in s, ⟪l₁ i, l₂ i⟫ : by simp [finset.sum_ite_of_true]
 
 lemma orthogonal_family.norm_sum (l : Π i, V i) (s : finset ι) :
   ∥∑ i in s, (l i : E)∥ ^ 2 = ∑ i in s, ∥l i∥ ^ 2 :=
 begin
-  have : (∥∑ i in s, (l i : E)∥ ^ 2 : 𝕜 ) = ∑ i in s, ∥l i∥ ^ 2,
+  have : (∥∑ i in s, (l i : E)∥ ^ 2 : 𝕜) = ∑ i in s, ∥l i∥ ^ 2,
   { simp [← inner_self_eq_norm_sq_to_K, hV.inner_sum] },
   exact_mod_cast this,
 end
