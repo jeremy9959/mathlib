@@ -776,7 +776,7 @@ sum of the weights.
 -/
 lemma orthonormal.inner_left_right_finset {s : finset ι}  {v : ι → E} (hv : orthonormal 𝕜 v)
   {a : ι → ι → 𝕜} : ∑ i in s, ∑ j in s, (a i j) • ⟪v j, v i⟫ = ∑ k in s, a k k :=
-by simp [orthonormal_iff_ite.mp hv, finset.sum_ite_of_true]
+by classical; simp [orthonormal_iff_ite.mp hv, finset.sum_ite_of_true]
 
 /-- An orthonormal set is linearly independent. -/
 lemma orthonormal.linear_independent {v : ι → E} (hv : orthonormal 𝕜 v) :
@@ -1663,7 +1663,7 @@ begin
   ext j,
   apply hV.eq_ite,
 end
-... = ∑ (i : ι) in s, ite (i ∈ s) ⟪(l₁ i : E), l₂ i⟫ 0 : by simp [finset.sum_ite_eq'']
+... = ∑ (i : ι) in s, ite (i ∈ s) ⟪(l₁ i : E), l₂ i⟫ 0 : by simp [finset.sum_ite_eq']
 ... = ∑ i in s, ⟪l₁ i, l₂ i⟫ : by rw finset.sum_ite_of_true; simp
 
 lemma orthogonal_family.norm_sum (l : Π i, V i) (s : finset ι) :
