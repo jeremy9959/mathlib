@@ -218,6 +218,8 @@ fintype.card_of_subsingleton _
 lemma subsingleton.finite {s : set α} (h : s.subsingleton) : finite s :=
 h.induction_on finite_empty finite_singleton
 
+lemma to_finset_singleton (a : α) : ({a} : set α).to_finset = {a} := rfl
+
 lemma finite_is_top (α : Type*) [partial_order α] : finite {x : α | is_top x} :=
 (subsingleton_is_top α).finite
 
@@ -636,6 +638,20 @@ begin
   exact or.inr ⟨i, finset.mem_univ i, le_rfl⟩
 end
 
+lemma Union_pi_of_monotone {ι ι' : Type*} [linear_order ι'] [nonempty ι'] {α : ι → Type*}
+  {I : set ι} {s : Π i, ι' → set (α i)} (hI : finite I) (hs : ∀ i ∈ I, monotone (s i)) :
+  (⋃ j : ι', I.pi (λ i, s i j)) = I.pi (λ i, ⋃ j, s i j) :=
+begin
+  simp only [pi_def, bInter_eq_Inter, preimage_Union],
+  haveI := hI.fintype,
+  exact Union_Inter_of_monotone (λ i j₁ j₂ h, preimage_mono $ hs i i.2 h)
+end
+
+lemma Union_univ_pi_of_monotone {ι ι' : Type*} [linear_order ι'] [nonempty ι'] [fintype ι]
+  {α : ι → Type*} {s : Π i, ι' → set (α i)} (hs : ∀ i, monotone (s i)) :
+  (⋃ j : ι', pi univ (λ i, s i j)) = pi univ (λ i, ⋃ j, s i j) :=
+Union_pi_of_monotone (finite.of_fintype _) (λ i _, hs i)
+
 instance nat.fintype_Iio (n : ℕ) : fintype (Iio n) :=
 fintype.of_finset (finset.range n) $ by simp
 
@@ -763,6 +779,15 @@ lemma to_finset_union {α : Type*} [decidable_eq α] (s t : set α) [fintype (s 
   [fintype s] [fintype t] : (s ∪ t).to_finset = s.to_finset ∪ t.to_finset :=
 by ext; simp
 
+instance fintype_sdiff  {α : Type*} [decidable_eq α]
+  (s t : set α) [fintype s] [fintype t] :
+  fintype (s \ t : set α) :=
+fintype.of_finset (s.to_finset \ t.to_finset) $ by simp
+
+lemma to_finset_sdiff {α : Type*} [decidable_eq α] (s t : set α) [fintype s] [fintype t]
+  [fintype (s \ t : set α)] : (s \ t).to_finset = s.to_finset \ t.to_finset :=
+by ext; simp
+
 lemma to_finset_ne_eq_erase {α : Type*} [decidable_eq α] [fintype α] (a : α)
   [fintype {x : α | x ≠ a}] : {x : α | x ≠ a}.to_finset = finset.univ.erase a :=
 by ext; simp
@@ -792,18 +817,6 @@ finite.induction_on H
   (by simp only [bUnion_empty, bdd_above_empty, ball_empty_iff])
   (λ a s ha _ hs, by simp only [bUnion_insert, ball_insert_iff, bdd_above_union, hs])
 
-protected lemma finite.bdd_above_image {s : set β} (f : β → α) (h : s.finite) :
-  bdd_above (f '' s) :=
-begin
-  rcases is_empty_or_nonempty β with _i | _i; resetI,
-  { inhabit α,
-    use default α,
-    rintros a ⟨b, hb, rfl⟩,
-    revert hb b,
-    exact _i.elim },
-  exact (h.image f).bdd_above,
-end
-
 end
 
 section
@@ -818,10 +831,6 @@ protected lemma finite.bdd_below (hs : finite s) : bdd_below s :=
 lemma finite.bdd_below_bUnion {I : set β} {S : β → set α} (H : finite I) :
   (bdd_below (⋃i∈I, S i)) ↔ (∀i ∈ I, bdd_below (S i)) :=
 @finite.bdd_above_bUnion (order_dual α) _ _ _ _ _ H
-
-protected lemma finite.bdd_below_image {s : set β} (f : β → α) (h : s.finite) :
-  bdd_below (f '' s) :=
-@finite.bdd_above_image (order_dual α) _ _ _ _ f h
 
 end
 

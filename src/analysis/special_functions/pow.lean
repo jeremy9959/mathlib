@@ -606,12 +606,11 @@ end
 lemma rpow_le_rpow_of_exponent_ge' (hx0 : 0 ≤ x) (hx1 : x ≤ 1) (hz : 0 ≤ z) (hyz : z ≤ y) :
   x^y ≤ x^z :=
 begin
-  rcases lt_or_eq_of_le hz with hz | rfl,
-  rcases lt_or_eq_of_le hx0 with hx0 | rfl,
-  { exact rpow_le_rpow_of_exponent_ge hx0 hx1 hyz },
-  { rw zero_rpow (by linarith : y ≠ 0),
-    exact zero_rpow_nonneg _ },
-  { simpa using rpow_le_one hx0 hx1 hyz }
+  rcases eq_or_lt_of_le hx0 with rfl | hx0',
+  { rcases eq_or_lt_of_le hz with rfl | hz',
+    { exact (rpow_zero 0).symm ▸ (rpow_le_one hx0 hx1 hyz), },
+    rw [zero_rpow, zero_rpow]; linarith, },
+  { exact rpow_le_rpow_of_exponent_ge hx0' hx1 hyz, },
 end
 
 lemma rpow_left_inj_on {x : ℝ} (hx : x ≠ 0) :
@@ -1312,6 +1311,16 @@ end
 lemma monotone_rpow_of_nonneg {z : ℝ} (h : 0 ≤ z) : monotone (λ x : ℝ≥0∞, x ^ z) :=
 h.eq_or_lt.elim (λ h0, h0 ▸ by simp only [rpow_zero, monotone_const])
   (λ h0, (strict_mono_rpow_of_pos h0).monotone)
+
+/-- Bundles `λ x : ℝ≥0∞, x ^ y` into an order isomorphism when `y : ℝ` is positive,
+where the inverse is `λ x : ℝ≥0∞, x ^ (1 / y)`. -/
+@[simps apply] def order_iso_rpow (y : ℝ) (hy : 0 < y) : ℝ≥0∞ ≃o ℝ≥0∞ :=
+(strict_mono_rpow_of_pos hy).order_iso_of_right_inverse (λ x, x ^ y) (λ x, x ^ (1 / y))
+  (λ x, by { dsimp, rw [←rpow_mul, one_div_mul_cancel hy.ne.symm, rpow_one] })
+
+lemma order_iso_rpow_symm_apply (y : ℝ) (hy : 0 < y) :
+  (order_iso_rpow y hy).symm = order_iso_rpow (1 / y) (one_div_pos.2 hy) :=
+by { simp only [order_iso_rpow, one_div_one_div], refl }
 
 lemma rpow_le_rpow {x y : ℝ≥0∞} {z : ℝ} (h₁ : x ≤ y) (h₂ : 0 ≤ z) : x^z ≤ y^z :=
 monotone_rpow_of_nonneg h₂ h₁

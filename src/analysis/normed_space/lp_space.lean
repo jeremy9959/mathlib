@@ -20,7 +20,7 @@ to the above definition; that is, `f` has finite support if `p = 0`, `summable (
 `0 < p < ∞`, and `bdd_above (norm '' (set.range f))` if `p = ∞`.
 
 The space `lp E p` is the subtype of elements of `Π i : α, E i` which satisfy `mem_ℓp f p`. For
-`1 ≤ p`, the "norm" is genuinely a norm and (TODO) `lp` is a complete metric space.
+`1 ≤ p`, the "norm" is genuinely a norm and `lp` is a complete metric space.
 
 ## Main definitions
 
@@ -28,7 +28,15 @@ The space `lp E p` is the subtype of elements of `Π i : α, E i` which satisfy 
   if `p = 0`, `summable (λ a, ∥f a∥^p)` if `0 < p < ∞`, and `bdd_above (norm '' (set.range f))` if
   `p = ∞`
 * `lp E p` : elements of `Π i : α, E i` such that `mem_ℓp f p`. Defined as an `add_subgroup` of
-  `Π i : α, E i`.
+  a type synonym `pre_lp` for `Π i : α, E i`, and equipped with a `normed_group` structure; also
+  equipped with `normed_space 𝕜` and `complete_space` instances under appropriate conditions
+
+## Main results
+
+* `mem_ℓp.of_exponent_ge`: For `q ≤ p`, a function which is `mem_ℓp` for `q` is also `mem_ℓp` for
+  `p`
+* `lp.mem_ℓp_of_tendsto`, `lp.norm_le_of_tendsto`: A pointwise limit of functions in `lp`, all with
+  `lp` norm `≤ C`, is itself in `lp` and has `lp` norm `≤ C`.
 
 ## Implementation
 
@@ -38,7 +46,6 @@ say that `∥-f∥ = ∥f∥`, instead of the non-working `f.norm_neg`.
 ## TODO
 
 * Hölder's inequality
-* Completeness of `lp`
 * Equivalence with `pi_Lp`, for `α` finite
 * Equivalence with `measure_theory.Lp`, for `f : α → E` (i.e., functions rather than pi-types) and
   the counting measure on `α`
@@ -65,22 +72,31 @@ def mem_ℓp (f : Π i, E i) (p : ℝ≥0∞) : Prop :=
 if p = 0 then (set.finite {i | f i ≠ 0}) else
   (if p = ∞ then bdd_above (set.range (λ i, ∥f i∥)) else summable (λ i, ∥f i∥ ^ p.to_real))
 
+lemma mem_ℓp_zero_iff {f : Π i, E i} : mem_ℓp f 0 ↔ set.finite {i | f i ≠ 0} :=
+by dsimp [mem_ℓp]; rw [if_pos rfl]
+
 lemma mem_ℓp_zero {f : Π i, E i} (hf : set.finite {i | f i ≠ 0}) : mem_ℓp f 0 :=
-(if_pos rfl).mpr hf
+mem_ℓp_zero_iff.2 hf
+
+lemma mem_ℓp_infty_iff {f : Π i, E i} : mem_ℓp f ∞ ↔ bdd_above (set.range (λ i, ∥f i∥)) :=
+by dsimp [mem_ℓp]; rw [if_neg ennreal.top_ne_zero, if_pos rfl]
 
 lemma mem_ℓp_infty {f : Π i, E i} (hf : bdd_above (set.range (λ i, ∥f i∥))) : mem_ℓp f ∞ :=
-(if_neg ennreal.top_ne_zero).mpr ((if_pos rfl).mpr hf)
+mem_ℓp_infty_iff.2 hf
 
-lemma mem_ℓp_gen (hp : 0 < p.to_real) {f : Π i, E i} (hf : summable (λ i, ∥f i∥ ^ p.to_real)) :
-  mem_ℓp f p :=
+lemma mem_ℓp_gen_iff (hp : 0 < p.to_real) {f : Π i, E i} :
+  mem_ℓp f p ↔ summable (λ i, ∥f i∥ ^ p.to_real) :=
 begin
   rw ennreal.to_real_pos_iff at hp,
   dsimp [mem_ℓp],
   rw [if_neg hp.1.ne', if_neg hp.2.ne],
-  exact hf,
 end
 
-lemma mem_ℓp_gen' (hp : 0 < p.to_real) {C : ℝ} (hC : 0 ≤ C) {f : Π i, E i}
+lemma mem_ℓp_gen (hp : 0 < p.to_real) {f : Π i, E i} (hf : summable (λ i, ∥f i∥ ^ p.to_real)) :
+  mem_ℓp f p :=
+(mem_ℓp_gen_iff hp).2 hf
+
+lemma mem_ℓp_gen' (hp : 0 < p.to_real) {C : ℝ} {f : Π i, E i}
   (hf : ∀ s : finset α, ∑ i in s, ∥f i∥ ^ p.to_real ≤ C) :
   mem_ℓp f p :=
 begin
@@ -101,15 +117,10 @@ begin
   { apply mem_ℓp_zero,
     simp },
   { apply mem_ℓp_infty,
-    cases is_empty_or_nonempty α with _i _i; resetI,
-    { convert bdd_above_empty,
-      { simp [_i] },
-      apply_instance },
-    { convert bdd_above_singleton,
-      simp } },
+    simp only [norm_zero, pi.zero_apply],
+    exact bdd_above_singleton.mono set.range_const_subset, },
   { apply mem_ℓp_gen hp,
-    convert summable_zero,
-    simp [real.zero_rpow hp.ne'] }
+    simp [real.zero_rpow hp.ne', summable_zero], }
 end
 
 lemma zero_mem_ℓp' : mem_ℓp (λ i : α, (0 : E i)) p := zero_mem_ℓp
@@ -117,17 +128,14 @@ lemma zero_mem_ℓp' : mem_ℓp (λ i : α, (0 : E i)) p := zero_mem_ℓp
 namespace mem_ℓp
 
 lemma finite_dsupport {f : Π i, E i} (hf : mem_ℓp f 0) : set.finite {i | f i ≠ 0} :=
-(if_pos rfl).mp hf
+mem_ℓp_zero_iff.1 hf
 
 lemma bdd_above {f : Π i, E i} (hf : mem_ℓp f ∞) : bdd_above (set.range (λ i, ∥f i∥)) :=
-(if_pos rfl).mp ((if_neg ennreal.top_ne_zero).mp hf)
+mem_ℓp_infty_iff.1 hf
 
 lemma summable (hp : 0 < p.to_real) {f : Π i, E i} (hf : mem_ℓp f p) :
   summable (λ i, ∥f i∥ ^ p.to_real) :=
-begin
-  rw ennreal.to_real_pos_iff at hp,
-  exact (if_neg hp.2.ne).mp ((if_neg hp.1.ne').mp hf)
-end
+(mem_ℓp_gen_iff hp).1 hf
 
 lemma neg {f : Π i, E i} (hf : mem_ℓp f p) : mem_ℓp (-f) p :=
 begin
@@ -140,7 +148,7 @@ begin
     simpa using hf.summable hp },
 end
 
-lemma neg_iff {f : Π i, E i} : mem_ℓp (-f) p ↔ mem_ℓp f p :=
+@[simp] lemma neg_iff {f : Π i, E i} : mem_ℓp (-f) p ↔ mem_ℓp f p :=
 ⟨λ h, neg_neg f ▸ h.neg, mem_ℓp.neg⟩
 
 lemma of_exponent_ge {p q : ℝ≥0∞} {f : Π i, E i}
@@ -149,10 +157,9 @@ lemma of_exponent_ge {p q : ℝ≥0∞} {f : Π i, E i}
 begin
   rcases ennreal.trichotomy₂ hpq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, hp⟩ | ⟨rfl, rfl⟩ | ⟨hq, rfl⟩
     | ⟨hq, hp, hpq'⟩,
-  { apply mem_ℓp_zero,
-    exact hfq.finite_dsupport },
+  { exact hfq },
   { apply mem_ℓp_infty,
-    obtain ⟨C, hC⟩ := hfq.finite_dsupport.bdd_above_image (λ i, ∥f i∥),
+    obtain ⟨C, hC⟩ := (hfq.finite_dsupport.image (λ i, ∥f i∥)).bdd_above,
     use max 0 C,
     rintros x ⟨i, rfl⟩,
     by_cases hi : f i = 0,
@@ -195,8 +202,7 @@ lemma add {f g : Π i, E i} (hf : mem_ℓp f p) (hg : mem_ℓp g p) : mem_ℓp (
 begin
   rcases p.trichotomy with rfl | rfl | hp,
   { apply mem_ℓp_zero,
-    refine (hf.finite_dsupport.union hg.finite_dsupport).subset _,
-    intros i,
+    refine (hf.finite_dsupport.union hg.finite_dsupport).subset (λ i, _),
     simp only [pi.add_apply, ne.def, set.mem_union_eq, set.mem_set_of_eq],
     contrapose!,
     rintros ⟨hf', hg'⟩,
@@ -209,12 +215,11 @@ begin
     exact le_trans (norm_add_le _ _) (add_le_add (hA ⟨i, rfl⟩) (hB ⟨i, rfl⟩)) },
   apply mem_ℓp_gen hp,
   let C : ℝ := if p.to_real < 1 then 1 else 2 ^ (p.to_real - 1),
-  refine summable_of_nonneg_of_le _ _ (((hf.summable hp).add (hg.summable hp)).mul_left C),
+  refine summable_of_nonneg_of_le _ (λ i, _) (((hf.summable hp).add (hg.summable hp)).mul_left C),
   { exact λ b, real.rpow_nonneg_of_nonneg (norm_nonneg (f b + g b)) p.to_real },
-  { intros i,
-    refine (real.rpow_le_rpow (norm_nonneg _) (norm_add_le _ _) hp.le).trans _,
+  { refine (real.rpow_le_rpow (norm_nonneg _) (norm_add_le _ _) hp.le).trans _,
     dsimp [C],
-    split_ifs,
+    split_ifs with h h,
     { simpa using nnreal.coe_le_coe.2 (nnreal.rpow_add_le_add_rpow (∥f i∥₊) (∥g i∥₊) hp h.le) },
     { let F : fin 2 → ℝ≥0 := ![∥f i∥₊, ∥g i∥₊],
       have : ∀ i, (0:ℝ) ≤ F i := λ i, (F i).coe_nonneg,
@@ -247,12 +252,8 @@ lemma const_smul {f : Π i, E i} (hf : mem_ℓp f p) (c : 𝕜) : mem_ℓp (c �
 begin
   rcases p.trichotomy with rfl | rfl | hp,
   { apply mem_ℓp_zero,
-    refine hf.finite_dsupport.subset _,
-    intros i,
-    simp only [ne.def, set.mem_set_of_eq, pi.smul_apply],
-    contrapose!,
-    intros hf',
-    simp [hf'] },
+    refine hf.finite_dsupport.subset (λ i, (_ : ¬c • f i = 0 → ¬f i = 0)),
+    exact not_imp_not.mpr (λ hf', hf'.symm ▸ (smul_zero c)) },
   { obtain ⟨A, hA⟩ := hf.bdd_above,
     refine mem_ℓp_infty ⟨∥c∥ * A, _⟩,
     rintros a ⟨i, rfl⟩,
@@ -264,7 +265,7 @@ begin
 end
 
 lemma const_mul {f : α → 𝕜} (hf : mem_ℓp f p) (c : 𝕜) : mem_ℓp (λ x, c * f x) p :=
-by convert hf.const_smul c
+@mem_ℓp.const_smul α (λ i, 𝕜) _ _ 𝕜 _ _ _ hf c
 
 end normed_space
 
@@ -277,7 +278,7 @@ The space of elements of `Π i, E i` satisfying the predicate `mem_ℓp`.
 -/
 
 /-- We define `pre_lp E` to be a type synonym for `Π i, E i` which, importantly, does not inherit
-the `pi` topology on `Π i, E i` (otherwise this topology would descent to `lp E p` and conflict
+the `pi` topology on `Π i, E i` (otherwise this topology would descend to `lp E p` and conflict
 with the normed group topology we will later equip it with.)
 
 We choose to deal with this issue by making a type synonym for `Π i, E i` rather than for the `lp`
@@ -417,9 +418,8 @@ begin
     have : ∥f i∥ = 0 := le_antisymm (H.1 ⟨i, rfl⟩) (norm_nonneg _),
     simpa using this },
   { have hf : has_sum (λ (i : α), ∥f i∥ ^ p.to_real) 0,
-    { have := lp.has_sum_norm hp f ,
-      rw h at this,
-      simpa [real.zero_rpow hp.ne'] using this }, -- why can't the `simp` and `rw` be combined?
+    { have := lp.has_sum_norm hp f,
+      rwa [h, real.zero_rpow hp.ne'] at this },
     have : ∀ i, 0 ≤ ∥f i∥ ^ p.to_real := λ i, real.rpow_nonneg_of_nonneg (norm_nonneg _) _,
     rw has_sum_zero_iff_of_nonneg this at hf,
     ext i,
@@ -428,7 +428,7 @@ begin
     exact this.1 },
 end
 
-lemma eq_zero_iff_ae_eq_zero {f : lp E p} : f = 0 ↔ ⇑f = 0 :=
+lemma eq_zero_iff_coe_fn_eq_zero {f : lp E p} : f = 0 ↔ ⇑f = 0 :=
 by rw [lp.ext_iff, coe_fn_zero]
 
 @[simp] lemma norm_neg ⦃f : lp E p⦄ : ∥-f∥ = ∥f∥ :=
@@ -552,7 +552,7 @@ lemma coe_lp_submodule : (lp_submodule E p 𝕜).to_add_subgroup = lp E p := rfl
 instance : module 𝕜 (lp E p) :=
 { .. (lp_submodule E p 𝕜).module }
 
-lemma coe_fn_smul (c : 𝕜) (f : lp E p) : ⇑(c • f) = c • f := rfl
+@[simp] lemma coe_fn_smul (c : 𝕜) (f : lp E p) : ⇑(c • f) = c • f := rfl
 
 lemma norm_const_smul (hp : p ≠ 0) {c : 𝕜} (f : lp E p) : ∥c • f∥ = ∥c∥ * ∥f∥ :=
 begin
@@ -612,8 +612,6 @@ begin
   exact this.trans_lt hfg,
 end
 
-variables {F : ℕ → lp E p}
-
 lemma norm_apply_le_of_tendsto {C : ℝ} {F : ℕ → lp E ∞} (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C)
   {f : Π a, E a} (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) (a : α) :
   ∥f a∥ ≤ C :=
@@ -629,14 +627,12 @@ variables [_i : fact (1 ≤ p)]
 
 include _i
 
-lemma sum_rpow_le_of_tendsto (hp : p ≠ ⊤) {C : ℝ} (hC : 0 ≤ C)
-  (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C)
+lemma sum_rpow_le_of_tendsto (hp : p ≠ ⊤) {C : ℝ} {F : ℕ → lp E p} (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C)
   {f : Π a, E a} (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) (s : finset α) :
   ∑ (i : α) in s, ∥f i∥ ^ p.to_real ≤ C ^ p.to_real :=
 begin
   have hp' : p ≠ 0 := (ennreal.zero_lt_one.trans_le _i.elim).ne',
   have hp'' : 0 < p.to_real := ennreal.to_real_pos hp' hp,
-  have hC' : 0 ≤ C ^ p.to_real := real.rpow_nonneg_of_nonneg hC _,
   let G : (Π a, E a) → ℝ := λ f, ∑ a in s, ∥f a∥ ^ p.to_real,
   have hG : continuous G,
   { refine continuous_finset_sum s _,
@@ -652,7 +648,8 @@ end
 
 /-- "Semicontinuity of the `lp` norm": If all sufficiently large elements of a sequence in `lp E p`
  have `lp` norm `≤ C`, then the pointwise limit, if it exists, also has `lp` norm `≤ C`. -/
-lemma norm_le_of_tendsto {C : ℝ} (hC : 0 ≤ C) (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C) {f : lp E p}
+lemma norm_le_of_tendsto {C : ℝ} (hC : 0 ≤ C) {F : ℕ → lp E p}
+  (hCF : ∀ᶠ k in at_top, ∥F k∥ ≤ C) {f : lp E p}
   (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) :
   ∥f∥ ≤ C :=
 begin
@@ -663,11 +660,11 @@ begin
   { have : 0 < p := ennreal.zero_lt_one.trans_le _i.elim,
     have hp' : 0 < p.to_real := ennreal.to_real_pos this.ne' hp.ne,
     apply norm_le_of_forall_sum_le hp' hC,
-    exact sum_rpow_le_of_tendsto hp.ne hC hCF hf, }
+    exact sum_rpow_le_of_tendsto hp.ne hCF hf, }
 end
 
 /-- If `f` is the pointwise limit of a bounded sequence in `lp E p`, then `f` is in `lp E p`. -/
-lemma mem_ℓp_of_tendsto (hF : metric.bounded (set.range F)) {f : Π a, E a}
+lemma mem_ℓp_of_tendsto {F : ℕ → lp E p} (hF : metric.bounded (set.range F)) {f : Π a, E a}
   (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) :
   mem_ℓp f p :=
 begin
@@ -681,14 +678,13 @@ begin
     refine norm_apply_le_of_tendsto (eventually_of_forall hCF) hf a, },
   { have : 0 < p := ennreal.zero_lt_one.trans_le _i.elim,
     have hp' : 0 < p.to_real := ennreal.to_real_pos this.ne' hp.ne,
-    have hC' : 0 ≤ C ^ p.to_real := real.rpow_nonneg_of_nonneg hC _,
-    apply mem_ℓp_gen' hp' hC',
-    exact sum_rpow_le_of_tendsto hp.ne hC (eventually_of_forall hCF) hf },
+    apply mem_ℓp_gen' hp',
+    exact sum_rpow_le_of_tendsto hp.ne (eventually_of_forall hCF) hf },
 end
 
 /-- If a sequence is Cauchy in the `lp E p` topology and pointwise convergent to a element `f` of
 `lp E p`, then it converges to `f` in the `lp E p` topology. -/
-lemma tendsto_lp_of_tendsto_pi (hF : cauchy_seq F) {f : lp E p}
+lemma tendsto_lp_of_tendsto_pi {F : ℕ → lp E p} (hF : cauchy_seq F) {f : lp E p}
   (hf : tendsto (id (λ i, F i) : ℕ → Π a, E a) at_top (𝓝 f)) :
   tendsto F at_top (𝓝 f) :=
 begin
@@ -713,7 +709,7 @@ begin
   -- A Cauchy sequence in `lp E p` is pointwise convergent; let `f` be the pointwise limit.
   obtain ⟨f, hf⟩ := cauchy_seq_tendsto_of_complete (uniform_continuous_coe.comp_cauchy_seq hF),
   -- Since the Cauchy sequence is bounded, its pointwise limit `f` is in `lp E p`.
-  have hf' : mem_ℓp f p := mem_ℓp_of_tendsto hF.bounded hf,
+  have hf' : mem_ℓp f p := mem_ℓp_of_tendsto hF.bounded_range hf,
   -- And therefore `f` is its limit in the `lp E p` topology as well as pointwise.
   exact ⟨⟨f, hf'⟩, tendsto_lp_of_tendsto_pi hF hf⟩
 end
