@@ -144,3 +144,54 @@ lemma orthogonal_family.has_sum_isometry_l2_of_dense_span_symm
   (w : lp (λ i, V i) 2) :
   has_sum (λ i, (w i : E)) ((hV.isometry_l2_of_dense_span hV').symm w) :=
 has_sum_foo hV w
+
+
+/-- An orthonormal set of vectors in `E` indexed by `ι` induces a linear isometry from `lp 2` of
+`ι → 𝕜` into `E`. -/
+def foo' [complete_space E] {v : ι → E} (hv : orthonormal 𝕜 v) :
+  lp (λ i : ι, 𝕜) 2 →ₗᵢ[𝕜] E :=
+{ to_fun := λ f, ∑' i, f i • v i,
+  map_add' := sorry,
+  map_smul' := sorry,
+  norm_map' := sorry }
+
+/-- A Hilbert basis on `ι` for an inner product space `E` is an identification of `E` with the `lp`
+space `ℓ^2(ι, 𝕜)`. -/
+structure hilbert_basis (ι : Type*) (𝕜 : Type*) [is_R_or_C 𝕜] (E : Type*) [inner_product_space 𝕜 E] :=
+of_repr :: (repr : E ≃ₗᵢ[𝕜] (lp (λ i : ι, 𝕜) 2))
+
+open submodule
+variables {v : ι → E} (hli : orthonormal 𝕜 v)
+
+lemma bzwz {v : ι → E} (hli : orthonormal 𝕜 v) : orthogonal_family 𝕜 (λ i, (𝕜 ∙ v i)) :=
+begin
+  intros i j hij,
+  simp only [mem_span_singleton, forall_apply_eq_imp_iff', forall_exists_index],
+  intros a b,
+  simp [inner_smul_right, inner_smul_left, hli.2 hij],
+end
+
+include hli
+/-- An orthonormal family of vectors whose span is dense in the whole module is a Hilbert basis. -/
+protected noncomputable def hilbert_basis.mk
+  [complete_space E] (hsp : (span 𝕜 (range v)).topological_closure = ⊤) : hilbert_basis ι 𝕜 E :=
+hilbert_basis.of_repr
+begin
+  haveI : ∀ i, complete_space (𝕜 ∙ v i) := sorry,
+  refine (bzwz hli).isometry_l2_of_dense_span _,
+
+end
+
+protected noncomputable def hilbert_basis.mk_of_orthogonal_eq_bot
+  [complete_space E] (hsp : (span 𝕜 (set.range v))ᗮ = ⊥) : hilbert_basis ι 𝕜 E :=
+hilbert_basis.mk hli
+(by rw [← orthogonal_orthogonal_eq_closure, submodule.orthogonal_eq_top_iff, hsp])
+
+/-- A Hilbert space admits a Hilbert basis extending a given orthonormal subset. -/
+lemma exists_hilbert_basis [complete_space E] {s : set E} (hs : orthonormal 𝕜 (coe : s → E)) :
+∃ (w : set E), s ⊆ w ∧ nonempty (hilbert_basis w 𝕜 E) :=
+let ⟨w, hws, hw_ortho, hw_max⟩ := exists_maximal_orthonormal hs in
+⟨ w,
+  hws,
+  ⟨ hilbert_basis.mk_of_orthogonal_eq_bot hw_ortho
+    (by simpa [maximal_orthonormal_iff_orthogonal_complement_eq_bot hw_ortho] using hw_max) ⟩⟩
