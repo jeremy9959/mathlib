@@ -1730,6 +1730,28 @@ begin
   rw ← finset.prod_sdiff (@inf_le_right _ _ s₁ s₂),
   simp,
 end
+
+@[simp] lemma foo {α : Type*} (s₁ s₂ : set α) : s₁ ∩ s₂ \ s₁ = ∅ :=
+begin
+  ext,
+  simp only [set.mem_empty_eq, set.mem_inter_eq, set.mem_diff],
+  tauto,
+end
+
+@[simp] lemma foo_left {α : Type*} [decidable_eq α] (s₁ s₂ : finset α) : s₁ ∩ s₂ \ s₁ = ∅ :=
+begin
+  ext,
+  simp only [finset.not_mem_empty, finset.mem_sdiff, finset.mem_inter],
+  tauto,
+end
+
+@[simp] lemma foo_right {α : Type*} [decidable_eq α] (s₁ s₂ : finset α) : s₁ ∩ s₂ \ s₂ = ∅ :=
+begin
+  ext,
+  simp only [finset.not_mem_empty, finset.mem_sdiff, finset.mem_inter],
+  tauto,
+end
+
 include hV
 
 lemma baz [complete_space E] (hV : orthogonal_family 𝕜 V)
@@ -1740,35 +1762,51 @@ begin
   rw summable_iff_cauchy_seq_finset at ⊢ hf,
   rw normed_group.cauchy_seq_iff  at ⊢ hf,
   intros ε hε,
-  have hε' : 0 < (ε / 2) ^ 2 := sq_pos_of_pos (half_pos hε),
+  have hε' : 0 < ε ^ 2 / 2 := half_pos (sq_pos_of_pos hε),
   obtain ⟨a, H⟩ := hf _ hε',
   use a,
   intros s₁ s₂ hs₁ hs₂,
+  refine (abs_lt_of_sq_lt_sq' _ (le_of_lt hε)).2,
   have has : a ≤ s₁ ⊓ s₂ := le_inf hs₁ hs₂,
-  have Hs₁ : ∑ (x : ι) in s₁ \ s₂, ∥f x∥ ^ 2 < (ε / 2) ^ 2,
+  have Hs₁ : ∑ (x : ι) in s₁ \ s₂, ∥f x∥ ^ 2 < ε ^ 2 / 2,
   { convert H _ _ hs₁ has,
-    rw finset.sum_sub_sum,
-    simp,
-    -- rw finset.inter_comm,
-    -- rw finset.sdiff_inter_self,
-    rw [← finset.sum_sdiff (@inf_le_left _ _ s₁ s₂), finset.inf_eq_inter,
-      finset.sdiff_inter_self_left, add_tsub_cancel_right, real.norm_eq_abs,
-      _root_.abs_of_nonneg],
+    rw [finset.sum_sub_sum, real.norm_eq_abs],
+    convert (_root_.abs_of_nonneg _).symm,
+    { simp },
+    { apply_instance },
     apply finset.sum_nonneg,
-    simp },
-  have Hs₂ : ∑ (x : ι) in s₂ \ s₁, ∥f x∥ ^ 2 < (ε / 2) ^ 2,
+    exact λ _ _, sq_nonneg _ },
+  have Hs₂ : ∑ (x : ι) in s₂ \ s₁, ∥f x∥ ^ 2 < ε ^ 2 /2,
   { convert H _ _ hs₂ has,
-    rw [← finset.sum_sdiff (@inf_le_right _ _ s₁ s₂), finset.inf_eq_inter,
-      finset.sdiff_inter_self_right, add_tsub_cancel_right, real.norm_eq_abs,
-      _root_.abs_of_nonneg],
+    rw [finset.sum_sub_sum, real.norm_eq_abs],
+    convert (_root_.abs_of_nonneg _).symm,
+    { simp },
+    { apply_instance },
     apply finset.sum_nonneg,
-    simp },
-  calc _ = ∥∑ (x : ι) in s₁ \ a, (f x : E) - ∑ (x : ι) in s₂ \ a, (f x : E)∥ : by { congr' 1, abel }
-  ... ≤ ∥∑ (x : ι) in s₁ \ a, (f x : E)∥ + ∥∑ (x : ι) in s₂ \ a, (f x : E)∥ : norm_sub_le _ _
-  ... < ε/2 + ε/2 : add_lt_add _ _
-  ... = ε : add_halves ε,
-  -- nonnegativity and nice fact about finsets
-  repeat { sorry }
+    exact λ _ _, sq_nonneg _ },
+  have : ∑ i in s₁ \ s₂, ∥f i∥ ^ 2 + ∑ i in s₂ \ s₁, ∥f i∥ ^ 2 < ε ^ 2,
+  { linarith },
+  convert this,
+  rw [finset.sum_sub_sum, sub_eq_add_neg, ← finset.sum_neg_distrib],
+  let F : Π i, V i := λ i, if i ∈ s₁ then f i else - (f i),
+  have hF₁ : ∀ i ∈ s₁ \ s₂, F i = f i := λ i hi, if_pos (finset.sdiff_subset _ _ hi),
+  have hF₂ : ∀ i ∈ s₂ \ s₁, F i = - f i := λ i hi, if_neg (finset.mem_sdiff.mp hi).2,
+  have hF : ∀ i, ∥F i∥ = ∥f i∥,
+  { intros i,
+    dsimp [F],
+    split_ifs;
+    simp, },
+  have : ∥∑ i in s₁ \ s₂, (F i : E) + ∑ i in s₂ \ s₁, F i∥ ^ 2 =
+    ∑ i in s₁ \ s₂, ∥F i∥ ^ 2 + ∑ i in s₂ \ s₁, ∥F i∥ ^ 2,
+  { have hs : disjoint (s₁ \ s₂) (s₂ \ s₁) := disjoint_sdiff_sdiff,
+    simpa only [finset.sum_union hs] using hV.norm_sum F (s₁ \ s₂ ∪ s₂ \ s₁) },
+  convert this using 4,
+  { refine finset.sum_congr rfl (λ i hi, _),
+    simp [hF₁ i hi] },
+  { refine finset.sum_congr rfl (λ i hi, _),
+    simp [hF₂ i hi] },
+  { simp [hF] },
+  { simp [hF] },
 end
 
 end orthogonal_family
